@@ -1,0 +1,50 @@
+//00000013        // addi  x0, x0, 0  -> x0 = 0                   // done
+//0Af00093        // addi  x1, x0, 0xFFFF  -> x1 = 1                     // done
+//00F00113        // addi  x2, x0, 15  -> x2 = 10                   // done
+//ffe00193        // addi  x3, x0, -2 -> x3 = -2                  // done
+//RTYPE
+//00308133      // add   x2, x1, x3   -> x4 = 1 + -2 = -1         // done
+//00308033      // add   x0, x1, x3   -> x4 = 1 + -2 = -1         // done
+//40308233      // sub   x4, x1, x3   -> x4 = 10 - -10 = 20       // done
+//40208233      // sub   x4, x1, x2   -> x4 = 1 - 2 = -1          // done
+//00209233      // sll   x4, x1, x2   -> x4 = 10 << 20 = 00A0000  // done
+//0020a233      // slt   x4, x1, x2   -> x4 = (10 < 5) = 00       // done      
+//0030a233      // slt   x4, x1, x3   -> x4 = (10 < -10) = 00     // done
+//0020b233      // sltu  x4, x1, x2   -> x1 = 01                  // done
+//00113233      // sltu  x4, x2, x1   -> x1 = 00                  // done
+//0020c233      // xor   x4, x1, x2   -> x4 = 10 ^ 20 = 30        // done
+//0020c233      // xor   x4, x1, x2   -> x4 = 10 ^ (-10) = FC     // done
+//4020d233      // sra   x4, x1, x2   -> x4 = 10 >> 20 = 0        // done
+//0020d233      // srl   x4, x1, x2   -> x4 = 10 >> 20 = 0        // done
+//0020e233      // or    x4, x1, x2   -> x4 = 10 | 20 = 30        // done
+//0020f233      // and   x4, x1, x2   -> x4 = 10 & 20 = 0         // done
+//00100013      // addi  x0, x0, 1    -> x0 = 0                   // done
+//00A00093      // addi  x1, x0, 10   -> x1 = 10                  // done
+//00100113      // addi  x2, x0, 1    -> x2 = 1                   // done
+//00208033      // add   x0, x1, x2   -> x0 = 0                   // done
+//00100093      // addi  x1, x0, 1    -> x0 = 0                   // done
+//ITYPE
+//ffd10213      // addi  x4, x2, -3   -> x4 = 2 - 3 = -1          // done
+//00111213      // slli  x4, x2, 0x01 -> x4 = 2 << 1 = 4          // done
+//0Aa11213      // slli  x4, x2, 0xAA -> x4 = 5 << 01010          // done
+//ff612213      // slti  x4, x2, -10  -> x4 = (2 < -10) = 00      // done
+//03212213      // slti  x4, x2, 50   -> x4 = (2 < 50) = 01       // done
+//00113213      // sltiu x4, x2, 1    -> x4 = (2 < 1) = 0         // done
+//00313213      // sltiu x4, x2, 3    -> x4 = (2 < 3) = 1         // done
+//02c0c213      // xori  x4, x1, 44   -> x4 = 1 ^ 44 = 45         // done
+//00215213      // srli  x4, x2, 0x02 -> x4 = 5 >> 2 =            // done
+//00b15213      // srli  x4, x2, 0x0B -> x4 = 5 >> 01011          // done
+//40115213      // srai  x4, x2, 0x1  -> x4 = 5 >> 01101 = 0      // done
+//4051d213      // srai  x4, x3, 0x05 -> x4 = 5 >> 5 = 0          // done (bug ban dau do chua thay doi br_uns thanh so co dau) 
+//00A0e213      // ori   x4, x1, 10   -> x4 = 1 | 0x04 = 5        // done      r va i type co chung opcode
+//01617213      // andi  x4, x2, 22   -> x4 = 010 | 20 = 0        // done
+// Data transfer
+//00200023        // sb x2, 0(x0)    -> mem0   = 0000000F         // done
+//00000203        // lb x4, 0(x0)    -> x4     = 0000000F         // done
+//002002a3        // sb x2, 5(x0)    -> mem1   = 00000F00         // done
+//002004a3        // sb x2, 9(x0)    -> mem7   = 000F0000         // done
+//7e308f23        // sb x3, 2046(x1) -> mem512 = FE000000         // done
+//7fe08203        // lb x4, 2046(x1) -> x4     = FFFFFFFE         // done
+//00101023        // sh x1, 0(x0)    -> mem0   = 0000000F         // done
+//001011a3        // sh x1, 3(x0)    -> mem0   = 0000000F         // done
+//0010a023        // sw x1, 0(x0)    -> mem0   = 0000000F         // done
