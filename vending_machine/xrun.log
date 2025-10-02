@@ -1,0 +1,18 @@
+xrun(64): 20.09-s001: (c) Copyright 1995-2020 Cadence Design Systems, Inc.
+TOOL:	xrun(64)	20.09-s001: Started on Oct 01, 2025 at 17:14:42 +07
+xrun
+	-sv
+	-f vending_machine.list
+		../00_src/vemding_machine/vending_machine.sv
+		../00_src/vemding_machine/adder_3bit.sv
+		../00_src/vemding_machine/sum_register.sv
+		../00_src/vemding_machine/compare_3bit.sv
+		../00_src/vemding_machine/subtract20_3bit.sv
+		../00_src/vemding_machine/vending_machine_tb.sv
+xrun: *E,FILEMIS: Cannot find the provided file ../00_src/vemding_machine/vending_machine.sv.
+xrun: *E,FILEMIS: Cannot find the provided file ../00_src/vemding_machine/adder_3bit.sv.
+xrun: *E,FILEMIS: Cannot find the provided file ../00_src/vemding_machine/sum_register.sv.
+xrun: *E,FILEMIS: Cannot find the provided file ../00_src/vemding_machine/compare_3bit.sv.
+xrun: *E,FILEMIS: Cannot find the provided file ../00_src/vemding_machine/subtract20_3bit.sv.
+xrun: *E,FILEMIS: Cannot find the provided file ../00_src/vemding_machine/vending_machine_tb.sv.
+TOOL:	xrun(64)	20.09-s001: Exiting on Oct 01, 2025 at 17:14:43 +07  (total: 00:00:01)
