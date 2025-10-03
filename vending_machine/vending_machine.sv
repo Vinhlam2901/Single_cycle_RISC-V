@@ -11,7 +11,6 @@ module vending_machine (
   reg        sum_ld, sub_ld;
   reg  [2:0] current_state, next_state;
   reg  [3:0] coin_value, op1;
-  wire [3:0] op2;
   wire       sum_eq, sum_lt;
   wire       sum_cout, sub_cout, cout;
   wire [2:0] sum;
@@ -123,7 +122,6 @@ module vending_machine (
     .sum_eq(sum_eq),
     .sum_lt(sum_lt)
   );
-  assign op2 = {sum_cout, sum};
   subtract20_3bit st1 (
     .i_sum(io_sum),
     .i_20(4'b0100),
