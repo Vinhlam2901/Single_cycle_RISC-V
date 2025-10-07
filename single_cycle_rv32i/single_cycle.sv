@@ -10,6 +10,29 @@ import package_param::*;
 module single_cycle (
     input  wire          clk_i,
     input  wire          rst_ni,
+
+    input  wire [31:0]  io_sw_i,
+    input  wire [31:0]  io_key_i,
+    output wire [31:0]  io_ledg_o,
+    output wire [31:0]  io_ledr_o,
+
+    output wire [31:0]  io_hex0_o,
+    output wire [31:0]  io_hex1_o,
+    output wire [31:0]  io_hex2_o,
+    output wire [31:0]  io_hex3_o,
+    output wire [31:0]  io_hex4_o,
+    output wire [31:0]  io_hex5_o,
+    output wire [31:0]  io_hex6_o,
+    output wire [31:0]  io_hex7_o,
+
+    output wire [31:0]  io_lcd0_o,
+    output wire [31:0]  io_lcd1_o,
+    output wire [31:0]  io_lcd2_o,
+    output wire [31:0]  io_lcd3_o,
+    output wire [31:0]  io_lcd4_o,
+    output wire [31:0]  io_lcd5_o,
+    output wire [31:0]  io_lcd6_o,
+    output wire [31:0]  io_lcd7_o,
     output reg   [31:0]  wb_data_o
   );
     //==================Declaration================================================================================
@@ -31,8 +54,8 @@ module single_cycle (
   //wire  [31:0]  rd_data_o;
   reg           op1_sel;
   reg   [31:0]  op1;
-  reg   [4:0]   bmask;
-  reg   [8:0]   rd_address;
+  reg   [3:0]   bmask;
+  reg   [11:0]  rd_address;
   reg   [31:0]  rd_data_o;
   reg   [31:0]  pc_reg;
   reg   [31:0]  wr_data;
@@ -54,7 +77,7 @@ module single_cycle (
   end
 
   always_comb begin : pc_instruction
-    next_pc = (wb_sel == 2'b01) ? jmp_pc : (pc_reg + 32'd4);
+    next_pc = (wb_sel == 2'b01 || pc_sel == 1'b1) ? jmp_pc : (pc_reg + 32'd4);
   end
 //==================IMEM=========================================================================================
   initial begin : instruction
@@ -125,7 +148,7 @@ module single_cycle (
   end
 //==================OPERATION_2=======================================================================================
   assign op2 = (op2_sel) ? ((inst[6:0] == STYPE) ? st_imm : imm_ex)
-                         : ((inst[6:0] == BTYPE) ? imm_ex :rs2_data);
+                         : ((inst[6:0] == BTYPE || inst[6:0] == ILTYPE ) ? imm_ex :rs2_data);
 //==================ALU=================================================================================================
   alu        a2 (.rs1_data_i  (op1),
                  .rs2_data_i  (op2),
@@ -135,8 +158,8 @@ module single_cycle (
                 );
 //==================DMEM=================================================================================================
   always_comb begin : rd_check_width
-    // only has data in case stype or iltype, rd_address = rs1 + imm
-    rd_address = ( inst[6:0] == STYPE || inst[6:0] == ILTYPE) ? rd_data_o[9:0] : 10'b0;
+    // only has data in case stype or iltype,    = rs1 + imm
+    rd_address = ( inst[6:0] == STYPE || inst[6:0] == ILTYPE) ? rd_data_o[11:0] : 10'b0;
     // has rs2'data if stype to store rs2'data to mem
     wr_data    = ( inst[6:0] == STYPE || inst[6:0] == ILTYPE) ? rs2_data       : 32'b0;
     if(inst[6:0] == STYPE || inst[6:0] == ILTYPE ) begin
@@ -173,7 +196,7 @@ module single_cycle (
       endcase
     end
   end
-  dmem d1 (
+  lsu d1 (
            .clk_i      (clk_i),
            .rst_ni     (rst_ni),
            .mem_wren   (mem_wren),
@@ -192,12 +215,16 @@ module single_cycle (
         3'b001: jmp_pc = (br_equal == 1'b0)                                           ? rd_data_o : (pc_reg + 32'd4); // blt
         3'b100: jmp_pc = (br_less  == 1'b1)                                           ? rd_data_o : (pc_reg + 32'd4); // bge
         3'b101: jmp_pc = (br_less  == 1'b0 && br_equal  == 1'b0)                      ? rd_data_o : (pc_reg + 32'd4); // bltu
-        3'b110: jmp_pc = (br_less  == 1'b1 && br_unsign == 1'b1)                      ?  rd_data_o : (pc_reg + 32'd4); // bgeu
+        3'b110: jmp_pc = (br_less  == 1'b1 && br_unsign == 1'b1)                      ? rd_data_o : (pc_reg + 32'd4); // bgeu
         3'b111: jmp_pc = (br_less  == 1'b0 && br_equal  == 1'b0 && br_unsign == 1'b1) ? rd_data_o : (pc_reg + 32'd4);
         default:jmp_pc = rd_data_o;
       endcase
       end
     2'b10:   wb_data_o = read_data;
+    2'b11:   begin
+      wb_data_o = (pc_sel) ? (pc_reg + 32'd4) : 32'b0;
+      jmp_pc    = (pc_sel) ? rd_data_o        : (pc_reg + 32'd4);
+      end
     default: wb_data_o = rd_data_o;
   endcase
 end
@@ -206,7 +233,7 @@ end
     $strobe("ins = %h | opcode = %b | wb = %h        | op = %h ", inst, inst[6:0], wb_sel, alu_op);
     $strobe("rs1_addr = %h  | rs1 = %h   | rs2_addr = %h | rs2 = %h", inst[19:15], op1, inst[24:20], op2);
     $strobe("rd_addr = %h   | data = %h  | rdes_addr = %h ", inst[11:7], wb_data_o, rdes_addr);
-    $strobe("imm_ex = %h, br_less = %b, br_equal = %b", imm_ex, br_less, br_equal);
-    $strobe("jmp_pc = %h, pc_reg = %h, next_pc = %h", jmp_pc, pc_reg, next_pc);
+    $strobe("imm_ex = %h, br_less = %b, br_equal = %b, read_data = %h", imm_ex, br_less, br_equal, read_data);
+    $strobe("rd_address = %h, pc_reg = %h, next_pc = %h, wr_data = %h", rd_address, pc_reg, next_pc, wr_data);
   end
 endmodule

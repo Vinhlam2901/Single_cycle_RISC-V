@@ -183,12 +183,11 @@ module control_unit (
             endcase
       IJTYPE:            alu_opcode = 4'b0000;
       IITYPE:            alu_opcode = 4'b0000;
-      U1TYPE:            alu_opcode = 4'b0000;
-      U2TYPE:            alu_opcode = 4'b0000;
+      U1TYPE:            alu_opcode = 4'b0010;         // lui using sll
+      U2TYPE:            alu_opcode = 4'b0000;         // auipc using pc + sll
       default:           alu_opcode = 4'b0000;
     endcase
   case (instruction[6:0]) //op2
-    IJTYPE,
     BTYPE: begin                     //  PC += imm
         op1_sel = 1'b1; // pc
         op2_sel = 1'b0; // rs2_data
@@ -204,10 +203,20 @@ module control_unit (
         wb_sel  = 2'b10; //rd_data
     end
     STYPE,                           // rs1 + imm
-    ITYPE,                           // rs1 + imm
-    IITYPE: begin                    // rs1 + imm
+    ITYPE: begin                    // rs1 + imm
         op1_sel = 1'b0;
         op2_sel = 1'b1; // imm_ex;
+    end
+    IJTYPE: begin
+      wb_sel = 2'b11;
+      pc_sel = 1'b1;
+      op1_sel  = 1'b1;
+    end
+    IITYPE: begin
+      wb_sel = 2'b11;
+      pc_sel = 1'b1;
+      op1_sel  = 1'b0;
+
     end
     default: begin
         op1_sel = 1'b0; // rs1_data
