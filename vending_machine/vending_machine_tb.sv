@@ -43,8 +43,7 @@ module vending_machine_tb;
         $dumpvars(0, vending_machine_tb.uut.current_state, vending_machine_tb.uut.next_state);
         $dumpvars(0, vending_machine_tb.uut.o_sub, vending_machine_tb.uut.sum_rst);
         $dumpvars(0, vending_machine_tb.uut.sub_ld, vending_machine_tb.uut.disp_en);
-        $dumpvars(0, vending_machine_tb.uut.op2, vending_machine_tb.uut.sum_cout);
-        $dumpvars(0, vending_machine_tb.uut.op1);
+        $dumpvars(0, vending_machine_tb.uut.op1, vending_machine_tb.uut.sum_cout);
         // Test Case 2: Nhận 1 Nickel (5 cent) - Chỉ xuất hiện tại xung cạnh lên của i_clk
         #10;
         i_dime = 1;  // Xung cạnh lên (posedge i_clk)

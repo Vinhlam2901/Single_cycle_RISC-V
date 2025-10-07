@@ -32,7 +32,7 @@ module vending_machine (
             unique case (1'b1)
                 ~sum_lt                           : next_state = disp;  // sum > 20
                 sum_cout                          : next_state = disp;  // sum > 20
-                (i_nickle || i_dime || i_quarter) : next_state = add;   // c = 1
+                (i_nickle == 1'b1 || i_dime == 1'b1 || i_quarter == 1'b1) : next_state = add;   // c = 1
                 sum_lt                            : next_state = s1;    // sum < 20
             endcase
         end
@@ -85,9 +85,7 @@ module vending_machine (
   end
 //===================================DATAPATH=====================================================
   always_comb begin
-    if(~i_nickle && ~i_dime && ~i_quarter) begin
-        coin_value = coin_value + 4'b0000;
-    end else if (i_nickle == 1'b1) begin
+    if (i_nickle == 1'b1) begin
         coin_value = 4'b0001;
     end else if (i_dime == 1'b1) begin
         coin_value = 4'b0010;
@@ -100,7 +98,7 @@ module vending_machine (
         coin_value = 4'b0000;
     end
   end
-  assign op1 = (~i_nickle && ~i_dime && ~i_quarter) ? 4'b0 : coin_value;
+  assign op1 = ((i_nickle == 1'b0) && (i_dime == 1'b0) && (i_quarter == 1'b0)) ? 4'b0 : coin_value;
   adder_3bit a1 (
     .i_sum(sum),        // reg ouput is adder input
     .i_coin(op1),
@@ -122,7 +120,7 @@ module vending_machine (
     .sum_eq(sum_eq),
     .sum_lt(sum_lt)
   );
-  subtract20_3bit st1 (
+  subtract20_4bit st1 (
     .i_sum(io_sum),
     .i_20(4'b0100),
     .i_cin(1'b1),

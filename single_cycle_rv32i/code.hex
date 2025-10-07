@@ -1,15 +1,12 @@
-//00000013        // addi  x0, x0, 0  -> x0 = 0                   // done
-//0Af00093        // addi  x1, x0, 0xFFFF  -> x1 = 1                     // done
-//00F00113        // addi  x2, x0, 15  -> x2 = 10                   // done
-//ffe00193        // addi  x3, x0, -2 -> x3 = -2                  // done
+//===============================DONE==========================================
 //RTYPE
 //00308133      // add   x2, x1, x3   -> x4 = 1 + -2 = -1         // done
 //00308033      // add   x0, x1, x3   -> x4 = 1 + -2 = -1         // done
 //40308233      // sub   x4, x1, x3   -> x4 = 10 - -10 = 20       // done
 //40208233      // sub   x4, x1, x2   -> x4 = 1 - 2 = -1          // done
 //00209233      // sll   x4, x1, x2   -> x4 = 10 << 20 = 00A0000  // done
-//0020a233      // slt   x4, x1, x2   -> x4 = (10 < 5) = 00       // done      
-//0030a233      // slt   x4, x1, x3   -> x4 = (10 < -10) = 00     // done
+//0020a233      // slt   x4, x1, x2   -> x4 = (1 < 15) = 01       // done      
+//0030a233      // slt   x4, x1, x3   -> x4 = (11 < -2) = 00     // done
 //0020b233      // sltu  x4, x1, x2   -> x1 = 01                  // done
 //00113233      // sltu  x4, x2, x1   -> x1 = 00                  // done
 //0020c233      // xor   x4, x1, x2   -> x4 = 10 ^ 20 = 30        // done
@@ -48,3 +45,17 @@
 //00101023        // sh x1, 0(x0)    -> mem0   = 0000000F         // done
 //001011a3        // sh x1, 3(x0)    -> mem0   = 0000000F         // done
 //0010a023        // sw x1, 0(x0)    -> mem0   = 0000000F         // done
+// Branch Compare
+//00208463        // beq  x1, x2, label (label =  8)    true: x3 = 5  -> false NOP // done
+//00209463        // bne  x1, x2, label1 (label =1 = 8) true: x3 = 5  -> flase NOP // done
+//0020c463        // blt  x1, x2, label2 (label2 = 8)   true: x3 = 5  -> false NOP // done
+//0020d463        // bge  x1, x2, label2 (label2 = 8)   true: x3 = 15 -> false NOP // done
+//0020e463        // bltu x1, x2, label2 (label2 = 8)   true: x3 = 5  -> false NOP // done
+//0020f463        // bgeu x1, x2, label2 (label2 = 8)   true: x3 = 5  -> false NOP // done
+//00000013        // NOP
+//00500193        // x3 = 5
+//======================================================TESTING==================================
+00000013        // addi  x0, x0, 0  -> x0 = 0         pc = 0            // done 
+00300093        // addi  x1, x0, 1  -> x1 = 1         pc = 4            // done
+00200113        // addi  x2, x0, 2  -> x2 = 10        pc = 8           // done
+ffe00193        // addi x3, x0, -2 -> x3 = -2         = C          // done
