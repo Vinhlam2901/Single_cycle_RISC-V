@@ -13,9 +13,9 @@ module vending_machine (
   reg  [3:0] coin_value, op1;
   wire       sum_eq, sum_lt;
   wire       sum_cout, sub_cout, cout;
-  wire [3:0] sum;
+  wire [2:0] sum;
   wire [2:0] o_sub;
-  wire [3:0] io_sum;
+  wire [2:0] io_sum;
   parameter s0   = 3'b000, s1  = 3'b001,
             add  = 3'b010, disp = 3'b011;
 
@@ -29,11 +29,12 @@ module vending_machine (
     case (current_state)
         s0: next_state = s1;
         s1: begin
-            unique case (1'b1)
-                ~sum_lt                           : next_state = disp;  // sum > 20
-                sum_cout                          : next_state = disp;  // sum > 20
-                (i_nickle == 1'b1 || i_dime == 1'b1 || i_quarter == 1'b1) : next_state = add;   // c = 1
-                sum_lt                            : next_state = s1;    // sum < 20
+            case (1'b1)
+              sum_lt == 1'b0                           : next_state = disp;  // sum > 20
+              sum_cout == 1'b1                        : next_state = disp;  // sum > 20
+              (i_nickle == 1'b1 || i_dime == 1'b1 || i_quarter == 1'b1) : next_state = add;   // c = 1
+              sum_lt == 1'b1                       : next_state = s1;    // sum < 20
+              default: next_state = s1;
             endcase
         end
         add: begin
@@ -99,7 +100,7 @@ module vending_machine (
     end
   end
   assign op1 = ((i_nickle == 1'b0) && (i_dime == 1'b0) && (i_quarter == 1'b0)) ? 4'b0 : coin_value;
-  adder_4bit a1 (
+  adder_3bit a1 (
     .i_sum(sum),        // reg ouput is adder input
     .i_coin(op1),
     .i_cin(1'b0),
@@ -114,9 +115,9 @@ module vending_machine (
     .i_sum(io_sum),     // adder output is reg input
     .o_sum(sum)         // reg output
   );
-  compare_4bit c1 (
+  compare_3bit c1 (
     .i_sum(io_sum),
-    .i_20(4'b0100),
+    .i_20(3'b100),
     .sum_eq(sum_eq),
     .sum_lt(sum_lt)
   );
@@ -127,5 +128,5 @@ module vending_machine (
     .o_i_sub(o_sub),
     .o_cout(sub_cout)
   );
-  assign o_change = (disp_en) ? o_sub : 4'b0;
+  assign o_change = (disp_en) ? o_sub : 3'b0;
 endmodule
