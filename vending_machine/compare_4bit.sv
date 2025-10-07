@@ -1,4 +1,4 @@
-module compare_3bit (
+module compare_4bit (
     input  wire [2:0] i_sum,
     input  wire [2:0] i_20,
     output wire       sum_eq,

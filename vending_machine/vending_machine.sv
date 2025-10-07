@@ -13,9 +13,9 @@ module vending_machine (
   reg  [3:0] coin_value, op1;
   wire       sum_eq, sum_lt;
   wire       sum_cout, sub_cout, cout;
-  wire [2:0] sum;
+  wire [3:0] sum;
   wire [2:0] o_sub;
-  wire [2:0] io_sum;
+  wire [3:0] io_sum;
   parameter s0   = 3'b000, s1  = 3'b001,
             add  = 3'b010, disp = 3'b011;
 
@@ -99,7 +99,7 @@ module vending_machine (
     end
   end
   assign op1 = ((i_nickle == 1'b0) && (i_dime == 1'b0) && (i_quarter == 1'b0)) ? 4'b0 : coin_value;
-  adder_3bit a1 (
+  adder_4bit a1 (
     .i_sum(sum),        // reg ouput is adder input
     .i_coin(op1),
     .i_cin(1'b0),
@@ -114,9 +114,9 @@ module vending_machine (
     .i_sum(io_sum),     // adder output is reg input
     .o_sum(sum)         // reg output
   );
-  compare_3bit c1 (
+  compare_4bit c1 (
     .i_sum(io_sum),
-    .i_20(3'b100),
+    .i_20(4'b0100),
     .sum_eq(sum_eq),
     .sum_lt(sum_lt)
   );
@@ -127,5 +127,5 @@ module vending_machine (
     .o_i_sub(o_sub),
     .o_cout(sub_cout)
   );
-  assign o_change = (disp_en) ? o_sub : 3'b0;
+  assign o_change = (disp_en) ? o_sub : 4'b0;
 endmodule

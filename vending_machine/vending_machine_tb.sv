@@ -37,13 +37,13 @@ module vending_machine_tb;
         $dumpvars(0, vending_machine_tb.i_clk);
         $dumpvars(0, vending_machine_tb.o_change, vending_machine_tb.o_soda);
         $dumpvars(0, vending_machine_tb.i_nickle, vending_machine_tb.i_dime, vending_machine_tb.i_quarter);
-        // $dumpvars(0, vending_machine_tb.uut.sum, vending_machine_tb.uut.io_sum);
-        // $dumpvars(0, vending_machine_tb.uut.coin_value, vending_machine_tb.uut.sum_ld);
-        // $dumpvars(0, vending_machine_tb.uut.sum_eq, vending_machine_tb.uut.sum_lt);
-        // $dumpvars(0, vending_machine_tb.uut.current_state, vending_machine_tb.uut.next_state);
-        // $dumpvars(0, vending_machine_tb.uut.o_sub, vending_machine_tb.uut.sum_rst);
-        // $dumpvars(0, vending_machine_tb.uut.sub_ld, vending_machine_tb.uut.disp_en);
-        // $dumpvars(0, vending_machine_tb.uut.op1, vending_machine_tb.uut.sum_cout);
+        $dumpvars(0, vending_machine_tb.uut.sum, vending_machine_tb.uut.io_sum);
+        $dumpvars(0, vending_machine_tb.uut.coin_value, vending_machine_tb.uut.sum_ld);
+        $dumpvars(0, vending_machine_tb.uut.sum_eq, vending_machine_tb.uut.sum_lt);
+        $dumpvars(0, vending_machine_tb.uut.current_state, vending_machine_tb.uut.next_state);
+        $dumpvars(0, vending_machine_tb.uut.o_sub, vending_machine_tb.uut.sum_rst);
+        $dumpvars(0, vending_machine_tb.uut.sub_ld, vending_machine_tb.uut.disp_en);
+        $dumpvars(0, vending_machine_tb.uut.op1, vending_machine_tb.uut.sum_cout);
         // Test Case 2: Nhận 1 Nickel (5 cent) - Chỉ xuất hiện tại xung cạnh lên của i_clk
         #10;
         i_dime = 1;  // Xung cạnh lên (posedge i_clk)

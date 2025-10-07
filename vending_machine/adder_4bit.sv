@@ -1,11 +1,11 @@
-module adder_3bit (
-    input  wire [2:0] i_sum,
-    input  wire [2:0] i_coin,
+module adder_4bit (
+    input  wire [3:0] i_sum,
+    input  wire [3:0] i_coin,
     input  wire       i_cin,
-    output wire [2:0] o_i_sum,
+    output wire [3:0] o_i_sum,
     output wire       o_cout
 );
-  wire [1:0] c;
+  wire [2:0] c;
   full_adder f1 (
     .X_i(i_sum[0]),
     .B_i(i_coin[0]),
@@ -25,6 +25,13 @@ module adder_3bit (
     .B_i(i_coin[2]),
     .C_i(c[1]),
     .S_o(o_i_sum[2]),
+    .C_o(c[2])
+);
+  full_adder f4 (
+    .X_i(i_sum[3]),
+    .B_i(i_coin[3]),
+    .C_i(c[2]),
+    .S_o(o_i_sum[3]),
     .C_o(o_cout)
 );
 endmodule
