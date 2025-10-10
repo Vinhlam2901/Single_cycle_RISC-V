@@ -20,7 +20,7 @@ module immgen (
       ILTYPE,
       ITYPE  : imm_o = (is_msb) ? {{20{inst_i[31]}}, inst_i[31:20]}:
                                   {{20'h00000}, inst_i[31:20]};
-      STYPE  : imm_o =            {{20{inst_i[31]}},  inst_i[31:25], inst_i[11:7]};
+      STYPE  : imm_o =            {{20{1'b0}},  inst_i[31:25], inst_i[11:7]};
       BTYPE  : imm_o = (is_msb) ? {{20{inst_i[31]}}, inst_i[31], inst_i[7], inst_i[30:25], inst_i[11:8], 1'b0}:
                                   {{20'h00000}, inst_i[31], inst_i[7], inst_i[30:25], inst_i[11:8], 1'b0};
       IJTYPE : imm_o =            {{20{inst_i[31]}}, inst_i[31], inst_i[19:12], inst_i[20], inst_i[30:21], 1'b0};

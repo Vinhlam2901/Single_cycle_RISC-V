@@ -1,15 +1,15 @@
 module add_subtract (
-    input  [31:0] a_i,
-    input  [31:0] b_i,
-    input         cin_i,     // 0: Cộng, 1: Trừ
-    output [31:0] result_o,
-    output        cout_o
+    input  wire [31:0] a_i,
+    input  wire [31:0] b_i,
+    input              cin_i,     // 0: Cộng, 1: Trừ
+    output wire [31:0] result_o,
+    output             cout_o
 );
   wire [30:0] c;
   wire [31:0] b_mod_i;
   wire raw_cout;
   // Tính b XOR cin cho từng bit
-  assign b_mod_i = b_i ^ {32{cin_i}}; // nếu b_i là [3:0] và cin_i là 1 bit
+  assign b_mod_i      = b_i ^ {32{cin_i}}; // nếu b_i là [3:0] và cin_i là 1 bit
   // FA[0]
   assign result_o[0]  =  a_i[0]  ^ b_mod_i[0]   ^ cin_i;
   assign c[0]         = (a_i[0]  & b_mod_i[0])  | ((a_i[0] ^ b_mod_i[0]) & cin_i);

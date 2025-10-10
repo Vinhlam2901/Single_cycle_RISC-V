@@ -20,11 +20,7 @@ module control_unit (
 );
   wire is_add, is_sub, is_and, is_or, is_xor, is_slt, is_sltu, is_sra, is_srl, is_sll;
   wire is_addi, is_xori, is_ori, is_andi, is_slli, is_srli, is_srai, is_slti, is_sltiu;
-  wire is_lb, is_lh, is_lw, is_lbu, is_lhu;
-  wire is_sb, is_sh, is_sw;
   wire is_beq, is_bne, is_blt, is_bge, is_bltu, is_bgeu;
-  wire is_jal, is_jalr;
-  wire is_lui, is_auipc;
   wire [31:0] pc_addr, rs1_data, rs2_data;
   wire [9:0] rtype;
   wire [8:0] itype;
@@ -75,28 +71,6 @@ module control_unit (
   assign is_andi  =  instruction[12] & instruction[13]  &  instruction[14];
   // concat
   assign itype = {is_addi, is_slli, is_slti, is_sltiu, is_xori, is_srai, is_srli, is_ori, is_andi};
-//==========================ILTYPE=========================================================================
-  //is_lb
-  assign is_lb    = ~instruction[12] & ~instruction[13] & ~instruction[14];
-  //is_lh
-  assign is_lh    =  instruction[12] & ~instruction[13] & ~instruction[14];
-  //is_lw
-  assign is_lw    = ~instruction[12] & instruction[13]  & ~instruction[14];
-  //is_lbu
-  assign is_lbu   = ~instruction[12] & ~instruction[13] &  instruction[14];
-  //is_lhu
-  assign is_lhu   =  instruction[12] & ~instruction[13] &  instruction[14];
-  // concat
-  assign iltype = {is_lb, is_lh, is_lw, is_lbu, is_lhu};
-//==========================STYPE=========================================================================
-  //is_sb
-  assign is_sb    = ~instruction[12] & ~instruction[13] & ~instruction[14];
-  //is_sh
-  assign is_sh    =  instruction[12] & ~instruction[13] & ~instruction[14];
-  //is_sw
-  assign is_sw    = ~instruction[12] & instruction[13]  & ~instruction[14];
-  // concat
-  assign stype = {is_sb, is_sh, is_sw};
 //==========================BTYPE=========================================================================
   //is_beq
   assign is_beq  = ~instruction[12]  & ~instruction[13] & ~instruction[14];
@@ -113,7 +87,7 @@ module control_unit (
   // concat
   assign btype = {is_beq, is_bne, is_blt, is_bge, is_bltu, is_bgeu};
 //==========================CASE=========================================================================
-  always_comb begin
+  always_comb begin : signal_sel
     br_unsign   = 1'b1;
     wb_sel      = 2'b00;
     pc_sel      = ( instruction[6:0] == BTYPE  ||
