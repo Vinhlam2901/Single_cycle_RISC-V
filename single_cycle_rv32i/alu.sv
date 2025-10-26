@@ -4,14 +4,14 @@
 // File            : alu.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
-// Updated date    : 12/9/2025
+// Updated date    : 21/9/2025
 //===========================================================================================
 module alu (
-  input  wire  [31:0] rs1_data_i,
-  input  wire  [31:0] rs2_data_i,
+  input  wire  [31:0] i_op_a,
+  input  wire  [31:0] i_op_b,
   input  wire         br_unsign_i,
-  input  wire  [3:0]  alu_op_i,
-  output wire  [31:0] rd_data_o
+  input  wire  [3:0]  i_alu_op,
+  output wire  [31:0] o_alu_data
   );
   wire        slt, sltu;
   wire [31:0] rd_and, rd_or, rd_xor, rd_sra, rd_srl, rd_sll, rs_sra, rd_add, rd_sub, rd_slt, rd_sltu;
@@ -20,62 +20,62 @@ module alu (
               rd_equals, rd_equalu;
   //and
   and_32bit    a1  (
-                    .rs1_i(rs1_data_i),
-                    .rs2_i(rs2_data_i),
+                    .rs1_i(i_op_a),
+                    .rs2_i(i_op_b),
                     .rd_o(rd_and)
                     ); //AND
   //or
   or_32bit     o1  (
-                    .rs1_i(rs1_data_i),
-                    .rs2_i(rs2_data_i),
+                    .rs1_i(i_op_a),
+                    .rs2_i(i_op_b),
                     .rd_o(rd_or)
                    ); //OR
-  assign rd_xor = rs1_data_i ^ rs2_data_i; //XOR
+  assign rd_xor = i_op_a ^ i_op_b; //XOR
     //add and sub
   add_subtract as1 (
-                    .a_i      (rs1_data_i),
-                    .b_i      (rs2_data_i),
+                    .a_i      (i_op_a),
+                    .b_i      (i_op_b),
                     .cin_i    (1'b1),
                     .result_o (rd_sub),
                     .cout_o   (cout_sub)
                    ); //SUB
   add_subtract as2 (
-                    .a_i      (rs1_data_i),
-                    .b_i      (rs2_data_i),
+                    .a_i      (i_op_a),
+                    .b_i      (i_op_b),
                     .cin_i    (1'b0),
                     .result_o (rd_add),
                     .cout_o   (cout_add)
                    ); //ADD
   //slt and sltu
   brcomp       bc1 (
-                    .rs1_i        (rs1_data_i),
-                    .rs2_i        (rs2_data_i),
-                    .br_unsign_i  (br_unsign_i),
-                    .br_less      (slt),
-                    .br_equal     (rd_equals)
+                    .i_rs1_data(i_op_a),
+                    .i_rs2_data(i_op_b),
+                    .i_br_un   (br_unsign_i),
+                    .o_br_less (slt),
+                    .o_br_equal(rd_equals)
                     ); //SLT
   brcomp       bc2 (
-                    .rs1_i        (rs1_data_i),
-                    .rs2_i        (rs2_data_i),
-                    .br_unsign_i  (1'b1),
-                    .br_less      (sltu),
-                    .br_equal     (rd_equalu)
+                    .i_rs1_data  (i_op_a),
+                    .i_rs2_data  (i_op_b),
+                    .i_br_un     (1'b1),
+                    .o_br_less   (sltu),
+                    .o_br_equal  (rd_equalu)
                    ); //SLTU
   //srl and sll
   srl          s1  (
-                    .rs1_data (rs1_data_i),
-                    .rs2_data (rs2_data_i),
+                    .rs1_data (i_op_a),
+                    .rs2_data (i_op_b),
                     .rd_data  (rd_srl)
                     ); //SRL
   sll          s2  (
-                    .rs1_data (rs1_data_i),
-                    .rs2_data (rs2_data_i),
+                    .rs1_data (i_op_a),
+                    .rs2_data (i_op_b),
                     .rd_data  (rd_sll)
                    ); //SLL
   //sra
   sra          s3  (
-                    .rs1_data   (rs1_data_i),
-                    .rs2_data   (rs2_data_i),
+                    .rs1_data   (i_op_a),
+                    .rs2_data   (i_op_b),
                     .br_unsign  (br_unsign_i),
                     .rd_data    (rd_sra)
                     ); //SRA
@@ -99,8 +99,8 @@ module alu (
                     .d13  (32'b0),
                     .d14  (32'b0),
                     .d15  (32'b0),
-                    .s    (alu_op_i),
-                    .y_o  (rd_data_o)
+                    .s    (i_alu_op),
+                    .y_o  (o_alu_data)
                 );
 endmodule
 //lí do nmos dẫn 0 và pmos dẫn 1

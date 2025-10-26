@@ -157,44 +157,63 @@ module control_unit (
             endcase
       IJTYPE:            alu_opcode = 4'b0000;
       IITYPE:            alu_opcode = 4'b0000;
-      U1TYPE:            alu_opcode = 4'b0010;         // lui using sll
-      U2TYPE:            alu_opcode = 4'b0000;         // auipc using pc + sll
+      U1TYPE:            alu_opcode = 4'b0000;         // lui using imm + 0
+      U2TYPE:            alu_opcode = 4'b0000;         // auipc using pc + imm
       default:           alu_opcode = 4'b0000;
     endcase
-  case (instruction[6:0]) //op2
-    BTYPE: begin                     //  PC += imm
-        op1_sel = 1'b1; // pc
-        op2_sel = 1'b0; // rs2_data
-        wb_sel  = 2'b01;   //pc
-    end
+  case (instruction[6:0]) 
     RTYPE: begin                     // opcode rd, r1, r2
-        op1_sel = 1'b0;
-        op2_sel = 1'b0; //rs2_data;
+        wb_sel  = 2'b00; // rd
+        pc_sel = 1'b0;    // pc + 4
+        op1_sel = 1'b0; //rs1
+        op2_sel = 1'b0; //rs2;
+    end
+    ITYPE: begin
+        wb_sel  = 2'b00; // rd
+        pc_sel  = 1'b0;  // pc + 4
+        op1_sel = 1'b0;  // rs1
+        op2_sel = 1'b1;  // imm
     end
     ILTYPE: begin
-        op1_sel = 1'b0;
-        op2_sel = 1'b1; // imm_ex;
-        wb_sel  = 2'b10; //rd_data
+        wb_sel  = 2'b11; // read_data
+        pc_sel  = 1'b0;  // pc + 4
+        op1_sel = 1'b0;  // rs1
+        op2_sel = 1'b1;  // imm_ex;
     end
-    STYPE,                           // rs1 + imm
-    ITYPE: begin                    // rs1 + imm
-        op1_sel = 1'b0;
-        op2_sel = 1'b1; // imm_ex;
+    BTYPE: begin
+        wb_sel  = 2'b01;   //jmp_pc
+        pc_sel  = 1'b1;    // jmp_pc
+        op1_sel = 1'b1;    // pc
+        op2_sel = 1'b1;    // imm
+    end
+    STYPE: begin
+        op1_sel = 1'b0; // rs1
+        op2_sel = 1'b1; // imm
+        pc_sel  = 1'b0; // pc + 4
     end
     IJTYPE: begin
-      wb_sel = 2'b11;
-      pc_sel = 1'b1;
-      op1_sel  = 1'b1;
+      wb_sel  = 2'b10; // rd = pc +4
+      pc_sel  = 1'b1;  // jmp_pc
+      op1_sel = 1'b1;  // pc
+      op2_sel = 1'b1;  // imm
     end
     IITYPE: begin
-      wb_sel = 2'b11;
-      pc_sel = 1'b1;
-      op1_sel  = 1'b0;
-
+      wb_sel  = 2'b01; // pc = rs1 + imm
+      pc_sel  = 1'b1;  // jmp_pc
+      op1_sel = 1'b0;  // rs1
+      op1_sel = 1'b1;  // imm
+    end
+    U1TYPE,
+    U2TYPE: begin
+      wb_sel  = 2'b00; // rd
+      pc_sel  = 1'b0;  // pc + 4
+      op1_sel = 1'b0;
+      op2_sel = 1'b1;  // imm
     end
     default: begin
         op1_sel = 1'b0; // rs1_data
         op2_sel = 1'b0; // rs2_data
+        pc_sel  = 1'b0;
         wb_sel  = 2'b00;
     end
   endcase

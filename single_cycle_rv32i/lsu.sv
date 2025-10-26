@@ -4,352 +4,174 @@
 // File            : lsu.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
-// Updated date    : 8/10/2025
+// Updated date    : 23/10/2025
 //============================================================================================================
+import package_param::*;
 module lsu (
-  input  wire        clk_i,
-  input  wire        rst_ni,
-  input  wire        mem_wren,
-  input  wire [11:0] rd_addr_i,  // memory addr 2^12 = 4096
-  input  wire [31:0] wr_data,
-  input  wire [3:0]  bmask_i,
-  output reg  [31:0] rd_data
+  input  wire        i_clk,
+  input  wire        i_rst_n,
+
+  input  wire [31:0] i_lsu_addr,
+  input  wire [31:0] i_st_data,
+  input  wire        i_lsu_wren,
+
+  input  wire [31:0] i_io_sw,
+
+  output reg  [6:0]  o_io_hex0,
+  output reg  [6:0]  o_io_hex1,
+  output reg  [6:0]  o_io_hex2,
+  output reg  [6:0]  o_io_hex3,
+  output reg  [6:0]  o_io_hex4,
+  output reg  [6:0]  o_io_hex5,
+  output reg  [6:0]  o_io_hex6,
+  output reg  [6:0]  o_io_hex7,
+
+  output reg  [31:0] o_ld_data,
+
+  output reg  [31:0] o_io_ledr,
+
+  output reg  [31:0] o_io_ledg,
+
+  output reg  [31:0] o_io_lcd
 );
-//====================================MEMORY===================================================================
-  reg  [7:0] lsu             [0: 4095]; // 0 - FFF
-  localparam DMEM_BASE     = 12'h000; // 0x000 - 0x7FF
-  localparam PERI_OUT_BASE = 12'h800; // 0x800 - 0x9FF
-  localparam PERI_IN_BASE  = 12'hA00; // 0xA00 - 0xBFF
-  localparam RESV_BASE     = 12'hC00; // 0xC00 - 0xFFF
 
 //====================================DECLARATION==============================================================
+  localparam DMEM_BASE     = 32'h0000_0000; // 0x000 - 0x7FF
+  localparam PERI_OUT_BASE = 32'h1000_0800; // 0x800 - 0x9FF
+  localparam PERI_IN_BASE  = 32'h1001_0000; // 0xA00 - 0xBFF
 
-  wire [11:0] rd_addr_fix;
-  wire [10:0] dmem_addr;
+  reg  [31:0] lsu;
+  reg  [31:0] ledr;
+  reg  [31:0] ledg;
+  reg  [ 6:0] hex0_3;
+  reg  [ 6:0] hex4_7;
+  reg  [31:0] lcd;
+  reg  [31:0] sw;
+  reg  [31:0] dmem;
 
-  reg  [31:0] lcd_7, lcd_6, lcd_5, lcd_4, lcd_3, lcd_2, lcd_1, lcd_0;
-  reg  [31:0] hex_7, hex_6, hex_5, hex_4, hex_3, hex_2, hex_1, hex_0;
-  reg  [31:0] led_r;
-  reg  [31:0] led_g;
+  wire [11:0] dmem_ptr;
+  wire [15:0] out_ptr;
+  wire [11:0] in_ptr;
 
-  reg  [7:0] key;
-  reg  [7:0] sw;
+  reg  [31:0] ledr_reg;
+  reg  [31:0] ledg_reg;
+  reg  [31:0] hex03_reg;
+  reg  [31:0] hex47_reg;
+  reg  [31:0] lcd_reg;
 
+  reg [3:0]  bmask;
+  wire        is_dmem;
+  wire        is_out;
+  wire        is_in;
+
+  wire        is_byte;
+  wire        is_hb;
+
+  wire        is_ledr;
+  wire        is_ledg;
+  wire        is_hex03;
+  wire        is_hex47;
+  wire        is_lcd;
+  wire        is_sw;
 //====================================CODE====================================================================
+  assign is_byte = ~(i_st_data[8]  & 1'b0);
+  assign is_hb   = ~(i_st_data[16] & 1'b0);
 
-  assign rd_addr_fix = rd_addr_i >> 2;
-  assign dmem_addr = rd_addr_fix[10:0];
-
-  always_ff @(posedge clk_i or negedge rst_ni) begin : lsu_store
-    if (!rst_ni) begin : reset
-        lsu[rd_addr_fix] <= 32'b0;
-    end else if (mem_wren) begin
-      if(rd_addr_fix < PERI_OUT_BASE) begin
-      case (bmask_i)
-        4'b0001: lsu[dmem_addr    ] <= wr_data[7:0];  // byte 1, exp: mem[0, 4, 8,..]
-        4'b0010: lsu[dmem_addr + 1] <= wr_data[7:0];  // byte 2
-        4'b0100: lsu[dmem_addr + 2] <= wr_data[7:0];  // byte 3
-        4'b1000: lsu[dmem_addr + 3] <= wr_data[7:0];  // byte 4
-        4'b0011: begin
-                 lsu[dmem_addr    ] <= wr_data[7:0];  // byte 1, 2
-                 lsu[dmem_addr + 1] <= wr_data[15:8];
-                 end
-        4'b1100: begin
-                 lsu[dmem_addr + 2] <= wr_data[23:16]; // byte 3, 4
-                 lsu[dmem_addr + 3] <= wr_data[31:24];
-                end
-        4'b1111: begin
-                 lsu[dmem_addr    ] <= wr_data[7:0];
-                 lsu[dmem_addr + 1] <= wr_data[15:8];
-                 lsu[dmem_addr + 2] <= wr_data[23:16];
-                 lsu[dmem_addr + 3] <= wr_data[31:24];
-                end
-        default: lsu[dmem_addr]     <= 8'b0;
+  always_comb begin
+    if( is_byte ) begin : bmask_sort                         // lbu
+      case (i_lsu_addr[1:0])                    // check number of immediate
+        2'b00:   bmask = 4'b0001;                 // byte 1
+        2'b01:   bmask = 4'b0010;                 // byte 2
+        2'b10:   bmask = 4'b0100;                 // byte 3
+        2'b11:   bmask = 4'b1000;                 // byte 4
+        default: bmask = 4'b0000;
       endcase
-      end else if (rd_addr_i < PERI_IN_BASE && rd_addr_i > PERI_OUT_BASE) begin : peri_data
-        case (rd_addr_i)
-        //========================LCD===================================
-        12'h800: lcd_7[ 7:0 ] <= wr_data[ 7:0 ];
-        12'h801: lcd_7[15:8 ] <= wr_data[15:8 ];
-        12'h802: lcd_7[23:16] <= wr_data[23:16];
-        12'h803: lcd_7[31:24] <= wr_data[31:24];
-
-        12'h804: lcd_6[ 7:0 ] <= wr_data[ 7:0 ];
-        12'h805: lcd_6[15:8 ] <= wr_data[15:8 ];
-        12'h806: lcd_6[23:16] <= wr_data[23:16];
-        12'h807: lcd_6[31:24] <= wr_data[31:24];
-
-        12'h808: lcd_5[ 7:0 ] <= wr_data[ 7:0 ];
-        12'h809: lcd_5[15:8 ] <= wr_data[15:8 ];
-        12'h80A: lcd_5[23:16] <= wr_data[23:16];
-        12'h80B: lcd_5[31:24] <= wr_data[31:24];
-
-        12'h80C: lcd_4[ 7:0 ] <= wr_data[ 7:0 ];
-        12'h80D: lcd_4[15:8 ] <= wr_data[15:8 ];
-        12'h80E: lcd_4[23:16] <= wr_data[23:16];
-        12'h80F: lcd_4[31:24] <= wr_data[31:24];
-
-        12'h810: lcd_3[ 7:0 ] <= wr_data[ 7:0 ];
-        12'h811: lcd_3[15:8 ] <= wr_data[15:8 ];
-        12'h812: lcd_3[23:16] <= wr_data[23:16];
-        12'h813: lcd_3[31:24] <= wr_data[31:24];
-
-        12'h814: lcd_2[ 7:0 ] <= wr_data[ 7:0 ];
-        12'h815: lcd_2[15:8 ] <= wr_data[15:8 ];
-        12'h816: lcd_2[23:16] <= wr_data[23:16];
-        12'h817: lcd_2[31:24] <= wr_data[31:24];
-
-        12'h818: lcd_1[ 7:0 ] <= wr_data[ 7:0 ];
-        12'h819: lcd_1[15:8 ] <= wr_data[15:8 ];
-        12'h81A: lcd_1[23:16] <= wr_data[23:16];
-        12'h81B: lcd_1[31:24] <= wr_data[31:24];
-
-        12'h81C: lcd_0[ 7:0 ] <= wr_data[ 7:0 ];
-        12'h81D: lcd_0[15:8 ] <= wr_data[15:8 ];
-        12'h81E: lcd_0[23:16] <= wr_data[23:16];
-        12'h81F: lcd_0[31:24] <= wr_data[31:24];
-        //========================HEX===================================
-        // 8 FIRST BIT USABLE
-        12'h820: hex_7[7:0]   <= wr_data[7:0];
-        12'h824: hex_6[7:0]   <= wr_data[7:0];
-        12'h840: led_r[7:0]   <= wr_data[7:0];
-        12'h828: hex_5[7:0]   <= wr_data[7:0];
-        12'h82C: hex_4[7:0]   <= wr_data[7:0];
-        12'h830: hex_3[7:0]   <= wr_data[7:0];
-        12'h834: hex_2[7:0]   <= wr_data[7:0];
-        12'h838: hex_1[7:0]   <= wr_data[7:0];
-        12'h83C: hex_0[7:0]   <= wr_data[7:0];
-        //========================LED_R===================================
-        12'h840: led_r[7:0]   <= wr_data[7:0];
-        12'h844: led_g[7:0]   <= wr_data[7:0];
-        default: begin
-          hex_7 <= 32'b0;
-          hex_6 <= 32'b0;
-          hex_5 <= 32'b0;
-          hex_4 <= 32'b0;
-          hex_3 <= 32'b0;
-          hex_2 <= 32'b0;
-          hex_1 <= 32'b0;
-          hex_0 <= 32'b0;
-          led_g <= 32'b0;
-          led_r <= 32'b0;
+    end else if ( is_hb ) begin                           // lhu
+      case (bmask[1:0])                    // check number of immediate
+        2'b00,
+        2'b01:   bmask = 4'b0011;               // byte 1, 2
+        2'b10,
+        2'b11:   bmask = 4'b1100;               // byte 3, 4
+        default: bmask = 4'b0000;
+      endcase
+    end else begin                       // lw, sw
+                 bmask   = 4'b1111;
         end
-      endcase
-      end 
-      // else if (rd_addr_i > PERI_IN_BASE && rd_addr_i < RESV_BASE) begin
-      //   mem_wren <= 1'b0;
-      // end else begin
-      //   mem_wren <= 1'b1;
-      // end
+    end
+
+  assign dmem_ptr  = i_lsu_addr[11:0];
+  assign out_ptr   = i_lsu_addr[15:0];
+  assign in_ptr    = i_lsu_addr[11:0];
+
+  assign is_dmem   = ~(i_lsu_addr[28] |   i_lsu_addr[16] ); //0000 -> ~(a[28] | a[16])
+  assign is_out    =  (i_lsu_addr[28] & ~(i_lsu_addr[16])); //1000 -> a[28] & ~a[16]
+  assign is_in     =  (i_lsu_addr[28] &   i_lsu_addr[16] ); //1001 -> a[28] & a[16]
+
+  assign is_ledr   = is_out && (~i_lsu_addr[14] & ~i_lsu_addr[13] & ~i_lsu_addr[12]); // 0x1000_0xxx
+  assign is_ledg   = is_out && (~i_lsu_addr[14] & ~i_lsu_addr[13] & i_lsu_addr[12] ); // 0x1000_1xxx
+  assign is_hex03  = is_out && (~i_lsu_addr[14] &  i_lsu_addr[13] & ~i_lsu_addr[12]); // 0x1000_2xxx
+  assign is_hex47  = is_out && (~i_lsu_addr[14] &  i_lsu_addr[13] &  i_lsu_addr[12]); // 0x1000_3xxx
+  assign is_lcd    = is_out && ( i_lsu_addr[14] & ~i_lsu_addr[13] & ~i_lsu_addr[12]); // 0x1000_4xxx
+  assign is_sw     = is_in  && ( i_lsu_addr[16] & ~i_lsu_addr[13]                  ); // 0x1001_0xxx
+
+  memory memory (
+                .i_clk  (i_clk),
+                .i_rst_n(i_rst_n),
+                .i_addr (dmem_ptr),
+                .i_wdata(i_st_data),
+                .i_bmask(bmask),
+                .i_wren (i_lsu_wren),
+                .o_rdata(dmem)
+              );
+
+  always_ff @(posedge i_clk or negedge i_rst_n) begin : lsu_store
+    if (!i_rst_n) begin : reset
+        ledr_reg  <= 32'b0;
+        ledg_reg  <= 32'b0;
+        hex03_reg <= 32'b0;
+        hex47_reg <= 32'b0;
+        lcd_reg   <= 32'b0;
+    end else if (1'b1) begin
+      if (is_out) begin : peri_data
+        if( is_ledr ) begin
+          ledr_reg  <= i_st_data;
+        end else if ( is_ledg ) begin
+          ledg_reg  <= i_st_data;
+        end else if ( is_hex03 ) begin
+          hex03_reg <= i_st_data;
+        end else if ( is_hex47 ) begin
+          hex47_reg <= i_st_data;
+        end else if ( is_lcd ) begin
+          lcd_reg   <= i_st_data;
+        end
+      end else if ( is_in ) begin
+          sw        <= i_io_sw;
+      end else if ( is_dmem) begin
+          o_ld_data <= dmem;
+      end
     end
   end
 
-  // READ logic (asynchronous read)
-  always_comb begin
-    if(rd_addr_fix < PERI_OUT_BASE) begin : lsu_load
-    case (bmask_i)
-      4'b0001: rd_data = {{24{lsu[dmem_addr][7]}}, lsu[dmem_addr]};
-      4'b0010: rd_data = {{24{lsu[dmem_addr][7]}}, lsu[dmem_addr + 1]};
-      4'b0100: rd_data = {{24{lsu[dmem_addr][7]}}, lsu[dmem_addr + 2]};
-      4'b1000: rd_data = {{24{lsu[dmem_addr][7]}}, lsu[dmem_addr + 3]};
-      4'b0011: rd_data = {{16{lsu[dmem_addr][7]}}, lsu[dmem_addr + 1], lsu[dmem_addr + 2]};
-      4'b1100: rd_data = {{16{lsu[dmem_addr][7]}}, lsu[dmem_addr + 3], lsu[dmem_addr + 3]};
-      4'b1111: rd_data = {lsu[dmem_addr], lsu[dmem_addr + 1], lsu[dmem_addr + 2], lsu[dmem_addr + 3]};
-      default: rd_data = {lsu[dmem_addr], lsu[dmem_addr + 1], lsu[dmem_addr + 2], lsu[dmem_addr + 3]};
-    endcase
-    end else if (rd_addr_i > PERI_OUT_BASE && rd_addr_i < RESV_BASE) begin
-      if(bmask_i == 4'b1111) begin
-      case (rd_addr_i)
-        //========================LCD==========================================
-        // LOAD WORD
-        12'h800,12'h801,12'h802,12'h803: rd_data = lcd_7;
-        12'h804,12'h805,12'h806,12'h807: rd_data = lcd_6;
-        12'h808,12'h809,12'h80A,12'h80B: rd_data = lcd_5;
-        12'h80C,12'h80D,12'h80E,12'h80F: rd_data = lcd_4;
-        12'h810,12'h811,12'h812,12'h813: rd_data = lcd_3;
-        12'h814,12'h815,12'h816,12'h817: rd_data = lcd_2;
-        12'h818,12'h819,12'h81A,12'h81B: rd_data = lcd_1;
-        12'h81C,12'h81D,12'h81E,12'h81F: rd_data = lcd_0;
-        //========================HEX==========================================
-        12'h820:                         rd_data = hex_7;
-        12'h824:                         rd_data = hex_6;
-        12'h840:                         rd_data = led_r;
-        12'h828:                         rd_data = hex_5;
-        12'h82C:                         rd_data = hex_4;
-        12'h830:                         rd_data = hex_3;
-        12'h834:                         rd_data = hex_2;
-        12'h838:                         rd_data = hex_1;
-        12'h83C:                         rd_data = hex_0;
-        //========================LED_R===================================
-        12'h840:                         rd_data = led_r;
-        12'h844:                         rd_data = led_g;
-        default: rd_data = 32'b0;
-      endcase
-      end else if (bmask_i == 4'b0011) begin
-      case (rd_addr_i)
-        //========================LCD==========================================
-        // LOAD HALF WORD
-        12'h800,12'h801,12'h802,12'h803: rd_data = {{16{1'b0}}, lcd_7[15:0]};
-        12'h804,12'h805,12'h806,12'h807: rd_data = {{16{1'b0}}, lcd_6[15:0]};
-        12'h808,12'h809,12'h80A,12'h80B: rd_data = {{16{1'b0}}, lcd_5[15:0]};
-        12'h80C,12'h80D,12'h80E,12'h80F: rd_data = {{16{1'b0}}, lcd_4[15:0]};
-        12'h810,12'h811,12'h812,12'h813: rd_data = {{16{1'b0}}, lcd_3[15:0]};
-        12'h814,12'h815,12'h816,12'h817: rd_data = {{16{1'b0}}, lcd_2[15:0]};
-        12'h818,12'h819,12'h81A,12'h81B: rd_data = {{16{1'b0}}, lcd_1[15:0]};
-        12'h81C,12'h81D,12'h81E,12'h81F: rd_data = {{16{1'b0}}, lcd_0[15:0]};
-        //========================HEX==========================================
-        12'h820:                         rd_data = {{16{1'b0}}, hex_7[15:0]};
-        12'h824:                         rd_data = {{16{1'b0}}, hex_6[15:0]};
-        12'h840:                         rd_data = {{16{1'b0}}, led_r[15:0]};
-        12'h828:                         rd_data = {{16{1'b0}}, hex_5[15:0]};
-        12'h82C:                         rd_data = {{16{1'b0}}, hex_4[15:0]};
-        12'h830:                         rd_data = {{16{1'b0}}, hex_3[15:0]};
-        12'h834:                         rd_data = {{16{1'b0}}, hex_2[15:0]};
-        12'h838:                         rd_data = {{16{1'b0}}, hex_1[15:0]};
-        12'h83C:                         rd_data = {{16{1'b0}}, hex_0[15:0]};
-        //========================LED_R===================================
-        12'h840:                         rd_data = {{16{1'b0}}, led_r[15:0]};
-        12'h844:                         rd_data = {{16{1'b0}}, led_g[15:0]};
-        default: rd_data = 32'b0;
-      endcase
-      end else if (bmask_i == 4'b1100) begin
-      case (rd_addr_i)
-        //========================LCD==========================================
-        // LOAD HALF WORD
-        12'h800,12'h801,12'h802,12'h803: rd_data = {{16{1'b0}}, lcd_7[31:16]};
-        12'h804,12'h805,12'h806,12'h807: rd_data = {{16{1'b0}}, lcd_6[31:16]};
-        12'h808,12'h809,12'h80A,12'h80B: rd_data = {{16{1'b0}}, lcd_5[31:16]};
-        12'h80C,12'h80D,12'h80E,12'h80F: rd_data = {{16{1'b0}}, lcd_4[31:16]};
-        12'h810,12'h811,12'h812,12'h813: rd_data = {{16{1'b0}}, lcd_3[31:16]};
-        12'h814,12'h815,12'h816,12'h817: rd_data = {{16{1'b0}}, lcd_2[31:16]};
-        12'h818,12'h819,12'h81A,12'h81B: rd_data = {{16{1'b0}}, lcd_1[31:16]};
-        12'h81C,12'h81D,12'h81E,12'h81F: rd_data = {{16{1'b0}}, lcd_0[31:16]};
-        //========================HEX==========================================
-        12'h820:                         rd_data = {{16{1'b0}}, hex_7[31:16]};
-        12'h824:                         rd_data = {{16{1'b0}}, hex_6[31:16]};
-        12'h840:                         rd_data = {{16{1'b0}}, led_r[31:16]};
-        12'h828:                         rd_data = {{16{1'b0}}, hex_5[31:16]};
-        12'h82C:                         rd_data = {{16{1'b0}}, hex_4[31:16]};
-        12'h830:                         rd_data = {{16{1'b0}}, hex_3[31:16]};
-        12'h834:                         rd_data = {{16{1'b0}}, hex_2[31:16]};
-        12'h838:                         rd_data = {{16{1'b0}}, hex_1[31:16]};
-        12'h83C:                         rd_data = {{16{1'b0}}, hex_0[31:16]};
-        //========================LED_R===================================
-        12'h840:                         rd_data = {{16{1'b0}}, led_r[31:16]};
-        12'h844:                         rd_data = {{16{1'b0}}, led_g[31:16]};
-        default: rd_data = 32'b0;
-      endcase
-      end else if (bmask_i == 4'b0001) begin
-      case (rd_addr_i)
-        //========================LCD=========================================
-        // LOAD BYTE
-        12'h800,12'h801,12'h802,12'h803: rd_data = {{24{1'b0}}, lcd_7[7:0]};
-        12'h804,12'h805,12'h806,12'h807: rd_data = {{24{1'b0}}, lcd_6[7:0]};
-        12'h808,12'h809,12'h80A,12'h80B: rd_data = {{24{1'b0}}, lcd_5[7:0]};
-        12'h80C,12'h80D,12'h80E,12'h80F: rd_data = {{24{1'b0}}, lcd_4[7:0]};
-        12'h810,12'h811,12'h812,12'h813: rd_data = {{24{1'b0}}, lcd_3[7:0]};
-        12'h814,12'h815,12'h816,12'h817: rd_data = {{24{1'b0}}, lcd_2[7:0]};
-        12'h818,12'h819,12'h81A,12'h81B: rd_data = {{24{1'b0}}, lcd_1[7:0]};
-        12'h81C,12'h81D,12'h81E,12'h81F: rd_data = {{24{1'b0}}, lcd_0[7:0]};
-        //========================HEX==========================================
-        12'h820:                         rd_data = {{24{1'b0}}, hex_7[7:0]};
-        12'h824:                         rd_data = {{24{1'b0}}, hex_6[7:0]};
-        12'h840:                         rd_data = {{24{1'b0}}, led_r[7:0]};
-        12'h828:                         rd_data = {{24{1'b0}}, hex_5[7:0]};
-        12'h82C:                         rd_data = {{24{1'b0}}, hex_4[7:0]};
-        12'h830:                         rd_data = {{24{1'b0}}, hex_3[7:0]};
-        12'h834:                         rd_data = {{24{1'b0}}, hex_2[7:0]};
-        12'h838:                         rd_data = {{24{1'b0}}, hex_1[7:0]};
-        12'h83C:                         rd_data = {{24{1'b0}}, hex_0[7:0]};
-        //========================LED_R===================================
-        12'h840:                         rd_data = {{24{1'b0}}, led_r[7:0]};
-        12'h844:                         rd_data = {{24{1'b0}}, led_g[7:0]};
-        default: rd_data = 32'b0;
-      endcase
-      end else if (bmask_i == 4'b0010) begin
-      case (rd_addr_i)
-        //========================LCD=========================================
-        // LOAD BYTE
-        12'h800,12'h801,12'h802,12'h803: rd_data = {{24{1'b0}}, lcd_7[15:8]};
-        12'h804,12'h805,12'h806,12'h807: rd_data = {{24{1'b0}}, lcd_6[15:8]};
-        12'h808,12'h809,12'h80A,12'h80B: rd_data = {{24{1'b0}}, lcd_5[15:8]};
-        12'h80C,12'h80D,12'h80E,12'h80F: rd_data = {{24{1'b0}}, lcd_4[15:8]};
-        12'h810,12'h811,12'h812,12'h813: rd_data = {{24{1'b0}}, lcd_3[15:8]};
-        12'h814,12'h815,12'h816,12'h817: rd_data = {{24{1'b0}}, lcd_2[15:8]};
-        12'h818,12'h819,12'h81A,12'h81B: rd_data = {{24{1'b0}}, lcd_1[15:8]};
-        12'h81C,12'h81D,12'h81E,12'h81F: rd_data = {{24{1'b0}}, lcd_0[15:8]};
-        //========================HEX==========================================
-        12'h820:                         rd_data = {{24{1'b0}}, hex_7[15:8]};
-        12'h824:                         rd_data = {{24{1'b0}}, hex_6[15:8]};
-        12'h840:                         rd_data = {{24{1'b0}}, led_r[15:8]};
-        12'h828:                         rd_data = {{24{1'b0}}, hex_5[15:8]};
-        12'h82C:                         rd_data = {{24{1'b0}}, hex_4[15:8]};
-        12'h830:                         rd_data = {{24{1'b0}}, hex_3[15:8]};
-        12'h834:                         rd_data = {{24{1'b0}}, hex_2[15:8]};
-        12'h838:                         rd_data = {{24{1'b0}}, hex_1[15:8]};
-        12'h83C:                         rd_data = {{24{1'b0}}, hex_0[15:8]};
-        //========================LED_R===================================
-        12'h840:                         rd_data = {{24{1'b0}}, led_r[15:8]};
-        12'h844:                         rd_data = {{24{1'b0}}, led_g[15:8]};
-        default: rd_data = 32'b0;
-      endcase
-      end else if (bmask_i == 4'b0100) begin
-      case (rd_addr_i)
-        //========================LCD===========================================
-        // LOAD BYTE
-        12'h800,12'h801,12'h802,12'h803: rd_data = {{24{1'b0}}, lcd_7[23:16]};
-        12'h804,12'h805,12'h806,12'h807: rd_data = {{24{1'b0}}, lcd_6[23:16]};
-        12'h808,12'h809,12'h80A,12'h80B: rd_data = {{24{1'b0}}, lcd_5[23:16]};
-        12'h80C,12'h80D,12'h80E,12'h80F: rd_data = {{24{1'b0}}, lcd_4[23:16]};
-        12'h810,12'h811,12'h812,12'h813: rd_data = {{24{1'b0}}, lcd_3[23:16]};
-        12'h814,12'h815,12'h816,12'h817: rd_data = {{24{1'b0}}, lcd_2[23:16]};
-        12'h818,12'h819,12'h81A,12'h81B: rd_data = {{24{1'b0}}, lcd_1[23:16]};
-        12'h81C,12'h81D,12'h81E,12'h81F: rd_data = {{24{1'b0}}, lcd_0[23:16]};
-        //========================HEX==========================================
-        12'h820:                         rd_data = {{24{1'b0}}, hex_7[23:16]};
-        12'h824:                         rd_data = {{24{1'b0}}, hex_6[23:16]};
-        12'h840:                         rd_data = {{24{1'b0}}, led_r[23:16]};
-        12'h828:                         rd_data = {{24{1'b0}}, hex_5[23:16]};
-        12'h82C:                         rd_data = {{24{1'b0}}, hex_4[23:16]};
-        12'h830:                         rd_data = {{24{1'b0}}, hex_3[23:16]};
-        12'h834:                         rd_data = {{24{1'b0}}, hex_2[23:16]};
-        12'h838:                         rd_data = {{24{1'b0}}, hex_1[23:16]};
-        12'h83C:                         rd_data = {{24{1'b0}}, hex_0[23:16]};
-        //========================LED_R===================================
-        12'h840:                         rd_data = {{24{1'b0}}, led_r[7:0]};
-        12'h844:                         rd_data = {{24{1'b0}}, led_g[7:0]};
-        default: rd_data = 32'b0;
-      endcase
-      end else if (bmask_i == 4'b1000) begin
-      case (rd_addr_i)
-        //========================LCD===========================================
-        // LOAD BYTE
-        12'h800,12'h801,12'h802,12'h803: rd_data = {{24{1'b0}}, lcd_7[31:24]};
-        12'h804,12'h805,12'h806,12'h807: rd_data = {{24{1'b0}}, lcd_6[31:24]};
-        12'h808,12'h809,12'h80A,12'h80B: rd_data = {{24{1'b0}}, lcd_5[31:24]};
-        12'h80C,12'h80D,12'h80E,12'h80F: rd_data = {{24{1'b0}}, lcd_4[31:24]};
-        12'h810,12'h811,12'h812,12'h813: rd_data = {{24{1'b0}}, lcd_3[31:24]};
-        12'h814,12'h815,12'h816,12'h817: rd_data = {{24{1'b0}}, lcd_2[31:24]};
-        12'h818,12'h819,12'h81A,12'h81B: rd_data = {{24{1'b0}}, lcd_1[31:24]};
-        12'h81C,12'h81D,12'h81E,12'h81F: rd_data = {{24{1'b0}}, lcd_0[31:24]};
-        //========================HEX==========================================
-        12'h820:                         rd_data = {{24{1'b0}}, hex_7[31:24]};
-        12'h824:                         rd_data = {{24{1'b0}}, hex_6[31:24]};
-        12'h828:                         rd_data = {{24{1'b0}}, hex_5[31:24]};
-        12'h82C:                         rd_data = {{24{1'b0}}, hex_4[31:24]};
-        12'h830:                         rd_data = {{24{1'b0}}, hex_3[31:24]};
-        12'h834:                         rd_data = {{24{1'b0}}, hex_2[31:24]};
-        12'h838:                         rd_data = {{24{1'b0}}, hex_1[31:24]};
-        12'h83C:                         rd_data = {{24{1'b0}}, hex_0[31:24]};
-        //========================LED_R===================================
-        12'h840:                         rd_data = {{24{1'b0}}, led_r[31:24]};
-        12'h844:                         rd_data = {{24{1'b0}}, led_g[31:24]};
-        12'hA00:                         rd_data = key;
-        12'hA04:                         rd_data = sw;
-        default: rd_data = 32'b0;
-      endcase
+  always_comb begin : lsu_load
+    if (is_out) begin
+      if( is_ledr ) begin
+        o_io_ledr = ledr_reg;
+      end else if ( is_ledg ) begin
+        o_io_ledg = ledg_reg;
+      end else if ( is_hex03 ) begin
+        o_io_hex0 = hex03_reg[6:0];
+        o_io_hex1 = hex03_reg[13:7];
+        o_io_hex2 = hex03_reg[20:14];
+        o_io_hex3 = hex03_reg[27:21];
+      end else if ( is_hex47 ) begin
+        o_io_hex4 = hex47_reg[6:0];
+        o_io_hex5 = hex47_reg[13:7];
+        o_io_hex6 = hex47_reg[20:14];
+        o_io_hex7 = hex47_reg[27:21];
+      end else if ( is_lcd ) begin
+        o_io_lcd  = lcd_reg;
       end
-  end
-  end
+     end
+    end
 
 endmodule

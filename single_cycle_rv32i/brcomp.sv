@@ -7,29 +7,29 @@
 // Updated date    : 12/9/2025
 //===========================================================================================
 module brcomp (
-    input  wire [31:0] rs1_i,
-    input  wire [31:0] rs2_i,
-    input  wire        br_unsign_i,// 1 if unsign, 0 if sign
-    output wire        br_less,
-    output wire        br_equal
+    input  wire [31:0] i_rs1_data,
+    input  wire [31:0] i_rs2_data,
+    input  wire        i_br_un,// 1 if unsign, 0 if sign
+    output wire        o_br_equal,
+    output wire        o_br_less
 );
   wire [31:0] sub_o;
   wire cout;
-  //add_subtract S1 ( .a_i(rs1_i), .b_i(rs2_i), .cin_i(1'b1), .result_o(sub_o), .cout_o(cout));
-  //assign mux_out = (br_unsign_i) ? cout : ~sub_o[31];
-  //assign less_sign1 = mux_out ^ ~br_unsign_i;
+  //add_subtract S1 ( .a_i(i_rs1_data), .b_i(i_rs2_data), .cin_i(1'b1), .result_o(sub_o), .cout_o(cout));
+  //assign mux_out = (i_br_un) ? cout : ~sub_o[31];
+  //assign less_sign1 = mux_out ^ ~i_br_un;
   //overflow check
-  // assign ltemp1 = rs1_i[31] ^ rs2_i[31];
-  // assign ltemp2 = rs1_i[31] ^ sub_o[31];
+  // assign ltemp1 = i_rs1_data[31] ^ i_rs2_data[31];
+  // assign ltemp2 = i_rs1_data[31] ^ sub_o[31];
   // assign ltemp3 = ltemp1 & ltemp2;
   // assign ltemp4 = ltemp3 ^ sub_o[31];
-  //assign less_sign2 = ltemp4 & ~br_unsign_i;
-  assign {cout, sub_o} = rs1_i - rs2_i;
-  //br_less
-  assign br_less = ((br_unsign_i ? cout : ~sub_o[31]) ^ ~br_unsign_i) |
-                   (((rs1_i[31] ^ rs2_i[31])& (rs1_i[31] ^ sub_o[31]) ^ sub_o[31]) & ~br_unsign_i);
+  //assign less_sign2 = ltemp4 & ~i_br_un;
+  assign {cout, sub_o} = i_rs1_data - i_rs2_data;
+  //o_br_less
+  assign o_br_less = ((i_br_un ? cout : ~sub_o[31]) ^ ~i_br_un) |
+                   (((i_rs1_data[31] ^ i_rs2_data[31])& (i_rs1_data[31] ^ sub_o[31]) ^ sub_o[31]) & ~i_br_un);
   //compare block
-  assign br_equal = (sub_o[0]  ^ 1'b1) & (sub_o[1]  ^ 1'b1) & (sub_o[2]  ^ 1'b1) &
+  assign o_br_equal = (sub_o[0]  ^ 1'b1) & (sub_o[1]  ^ 1'b1) & (sub_o[2]  ^ 1'b1) &
                     (sub_o[3]  ^ 1'b1) & (sub_o[4]  ^ 1'b1) & (sub_o[5]  ^ 1'b1) &
                     (sub_o[6]  ^ 1'b1) & (sub_o[7]  ^ 1'b1) & (sub_o[8]  ^ 1'b1) &
                     (sub_o[9]  ^ 1'b1) & (sub_o[10] ^ 1'b1) & (sub_o[11] ^ 1'b1) &
