@@ -14,7 +14,7 @@ module alu (
   output wire  [31:0] o_alu_data
   );
   wire        slt, sltu;
-  wire [31:0] rd_and, rd_or, rd_xor, rd_sra, rd_srl, rd_sll, rs_sra, rd_add, rd_sub, rd_slt, rd_sltu;
+  wire [31:0] rd_and, rd_or, rd_xor, rd_sra, rd_srl, rd_sll, rd_add, rd_sub, rd_slt, rd_sltu;
   wire [31:0] imm_ex;
   wire        cout_add, cout_sub,
               rd_equals, rd_equalu;

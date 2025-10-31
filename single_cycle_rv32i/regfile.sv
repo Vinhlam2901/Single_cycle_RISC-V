@@ -7,7 +7,7 @@
 //===========================================================================================
 module regfile (
     input  wire         i_clk,
-    input  wire         i_rst_n,
+    input  wire         i_reset,
 
     input  wire  [4:0]  i_rs1_addr,
     input  wire  [4:0]  i_rs2_addr,
@@ -61,37 +61,37 @@ module regfile (
   assign enb[30]  = i_rd_wren & data_o[30];
   assign enb[31]  = i_rd_wren & data_o[31];
   register_32bit r0  (.i_clk(i_clk), .nrst_i(1'b0),    .en_i(1'b1),    .d_i(32'b0),     .q_o(q_o0) );
-  register_32bit r1  (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[1]),  .d_i(i_rd_data), .q_o(q_o1) );
-  register_32bit r2  (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[2]),  .d_i(i_rd_data), .q_o(q_o2) );
-  register_32bit r3  (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[3]),  .d_i(i_rd_data), .q_o(q_o3) );
-  register_32bit r4  (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[4]),  .d_i(i_rd_data), .q_o(q_o4) );
-  register_32bit r5  (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[5]),  .d_i(i_rd_data), .q_o(q_o5) );
-  register_32bit r6  (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[6]),  .d_i(i_rd_data), .q_o(q_o6) );
-  register_32bit r7  (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[7]),  .d_i(i_rd_data), .q_o(q_o7) );
-  register_32bit r8  (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[8]),  .d_i(i_rd_data), .q_o(q_o8) );
-  register_32bit r9  (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[9]),  .d_i(i_rd_data), .q_o(q_o9) );
-  register_32bit r10 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[10]), .d_i(i_rd_data), .q_o(q_o10));
-  register_32bit r11 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[11]), .d_i(i_rd_data), .q_o(q_o11));
-  register_32bit r12 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[12]), .d_i(i_rd_data), .q_o(q_o12));
-  register_32bit r13 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[13]), .d_i(i_rd_data), .q_o(q_o13));
-  register_32bit r14 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[14]), .d_i(i_rd_data), .q_o(q_o14));
-  register_32bit r15 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[15]), .d_i(i_rd_data), .q_o(q_o15));
-  register_32bit r16 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[16]), .d_i(i_rd_data), .q_o(q_o16));
-  register_32bit r17 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[17]), .d_i(i_rd_data), .q_o(q_o17));
-  register_32bit r18 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[18]), .d_i(i_rd_data), .q_o(q_o18));
-  register_32bit r19 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[19]), .d_i(i_rd_data), .q_o(q_o19));
-  register_32bit r20 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[20]), .d_i(i_rd_data), .q_o(q_o20));
-  register_32bit r21 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[21]), .d_i(i_rd_data), .q_o(q_o21));
-  register_32bit r22 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[22]), .d_i(i_rd_data), .q_o(q_o22));
-  register_32bit r23 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[23]), .d_i(i_rd_data), .q_o(q_o23));
-  register_32bit r24 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[24]), .d_i(i_rd_data), .q_o(q_o24));
-  register_32bit r25 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[25]), .d_i(i_rd_data), .q_o(q_o25));
-  register_32bit r26 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[26]), .d_i(i_rd_data), .q_o(q_o26));
-  register_32bit r27 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[27]), .d_i(i_rd_data), .q_o(q_o27));
-  register_32bit r28 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[28]), .d_i(i_rd_data), .q_o(q_o28));
-  register_32bit r29 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[29]), .d_i(i_rd_data), .q_o(q_o29));
-  register_32bit r30 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[30]), .d_i(i_rd_data), .q_o(q_o30));
-  register_32bit r31 (.i_clk(i_clk), .nrst_i(i_rst_n), .en_i(enb[31]), .d_i(i_rd_data), .q_o(q_o31));
+  register_32bit r1  (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[1]),  .d_i(i_rd_data), .q_o(q_o1) );
+  register_32bit r2  (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[2]),  .d_i(i_rd_data), .q_o(q_o2) );
+  register_32bit r3  (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[3]),  .d_i(i_rd_data), .q_o(q_o3) );
+  register_32bit r4  (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[4]),  .d_i(i_rd_data), .q_o(q_o4) );
+  register_32bit r5  (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[5]),  .d_i(i_rd_data), .q_o(q_o5) );
+  register_32bit r6  (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[6]),  .d_i(i_rd_data), .q_o(q_o6) );
+  register_32bit r7  (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[7]),  .d_i(i_rd_data), .q_o(q_o7) );
+  register_32bit r8  (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[8]),  .d_i(i_rd_data), .q_o(q_o8) );
+  register_32bit r9  (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[9]),  .d_i(i_rd_data), .q_o(q_o9) );
+  register_32bit r10 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[10]), .d_i(i_rd_data), .q_o(q_o10));
+  register_32bit r11 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[11]), .d_i(i_rd_data), .q_o(q_o11));
+  register_32bit r12 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[12]), .d_i(i_rd_data), .q_o(q_o12));
+  register_32bit r13 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[13]), .d_i(i_rd_data), .q_o(q_o13));
+  register_32bit r14 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[14]), .d_i(i_rd_data), .q_o(q_o14));
+  register_32bit r15 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[15]), .d_i(i_rd_data), .q_o(q_o15));
+  register_32bit r16 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[16]), .d_i(i_rd_data), .q_o(q_o16));
+  register_32bit r17 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[17]), .d_i(i_rd_data), .q_o(q_o17));
+  register_32bit r18 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[18]), .d_i(i_rd_data), .q_o(q_o18));
+  register_32bit r19 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[19]), .d_i(i_rd_data), .q_o(q_o19));
+  register_32bit r20 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[20]), .d_i(i_rd_data), .q_o(q_o20));
+  register_32bit r21 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[21]), .d_i(i_rd_data), .q_o(q_o21));
+  register_32bit r22 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[22]), .d_i(i_rd_data), .q_o(q_o22));
+  register_32bit r23 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[23]), .d_i(i_rd_data), .q_o(q_o23));
+  register_32bit r24 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[24]), .d_i(i_rd_data), .q_o(q_o24));
+  register_32bit r25 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[25]), .d_i(i_rd_data), .q_o(q_o25));
+  register_32bit r26 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[26]), .d_i(i_rd_data), .q_o(q_o26));
+  register_32bit r27 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[27]), .d_i(i_rd_data), .q_o(q_o27));
+  register_32bit r28 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[28]), .d_i(i_rd_data), .q_o(q_o28));
+  register_32bit r29 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[29]), .d_i(i_rd_data), .q_o(q_o29));
+  register_32bit r30 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[30]), .d_i(i_rd_data), .q_o(q_o30));
+  register_32bit r31 (.i_clk(i_clk), .nrst_i(i_reset), .en_i(enb[31]), .d_i(i_rd_data), .q_o(q_o31));
 
   mux_32to1 mux_rs1 (
                       .d0(q_o0),  .d1(q_o1),  .d2(q_o2),  .d3(q_o3),
@@ -118,8 +118,8 @@ module regfile (
 endmodule
 
 
-//  always_ff @(posedge i_clk or negedge i_rst_n) begin : regfile_32register
-//       if (~i_rst_n || i_rd_addr == 5'b00000) begin
+//  always_ff @(posedge i_clk or negedge i_reset) begin : regfile_32register
+//       if (~i_reset || i_rd_addr == 5'b00000) begin
 //             regfile[0] <= 0;
 //             regfile[1] <= 0;
 //             regfile[2] <= 0;

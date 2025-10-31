@@ -90,10 +90,7 @@ module control_unit (
   always_comb begin : signal_sel
     br_unsign   = 1'b1;
     wb_sel      = 2'b00;
-    pc_sel      = ( instruction[6:0] == BTYPE  ||
-                    instruction[6:0] == IJTYPE ||
-                    instruction[6:0] == IITYPE ||
-                    instruction[6:0] == U2TYPE  )  ? 1'b1 : 1'b0;
+    pc_sel      = 1'b0;
     rd_wren     = ( instruction[6:0] == STYPE  ||
                     instruction[6:0] == BTYPE   )  ? 1'b0 : 1'b1;
     mem_wren    = ( instruction[6:0] == STYPE)     ? 1'b1 : 1'b0;
@@ -140,19 +137,25 @@ module control_unit (
                 br_unsign = 1'b0;
                 end
               6'b010000 : begin                        // bne
-                alu_opcode = 4'b0001;
+                alu_opcode = 4'b0000;
                 br_unsign = 1'b0;
                 end
               6'b001000 : begin                        // blt
-                alu_opcode = 4'b0010;
+                alu_opcode = 4'b0000;
                 br_unsign = 1'b0;
                 end
               6'b000100: begin                         // bge
-                alu_opcode = 4'b0011;
+                alu_opcode = 4'b0000;
                 br_unsign = 1'b0;
                 end
-              6'b000010: alu_opcode = 4'b0100;         // bltu
-              6'b000001: alu_opcode = 4'b0101;
+              6'b000010: begin
+                alu_opcode = 4'b0000;         // bltu
+                br_unsign  = 1'b1;
+                end
+              6'b000001: begin
+                alu_opcode = 4'b0100;
+                br_unsign  = 1'b1;
+                end
               default  : alu_opcode = 4'b0000;         // bgeu
             endcase
       IJTYPE:            alu_opcode = 4'b0000;
@@ -161,10 +164,10 @@ module control_unit (
       U2TYPE:            alu_opcode = 4'b0000;         // auipc using pc + imm
       default:           alu_opcode = 4'b0000;
     endcase
-  case (instruction[6:0]) 
+  case (instruction[6:0])
     RTYPE: begin                     // opcode rd, r1, r2
         wb_sel  = 2'b00; // rd
-        pc_sel = 1'b0;    // pc + 4
+        pc_sel  = 1'b0;    // pc + 4
         op1_sel = 1'b0; //rs1
         op2_sel = 1'b0; //rs2;
     end
@@ -190,6 +193,7 @@ module control_unit (
         op1_sel = 1'b0; // rs1
         op2_sel = 1'b1; // imm
         pc_sel  = 1'b0; // pc + 4
+        mem_wren = 1'b1;
     end
     IJTYPE: begin
       wb_sel  = 2'b10; // rd = pc +4
@@ -198,10 +202,10 @@ module control_unit (
       op2_sel = 1'b1;  // imm
     end
     IITYPE: begin
-      wb_sel  = 2'b01; // pc = rs1 + imm
+      wb_sel  = 2'b10; // pc = rs1 + imm
       pc_sel  = 1'b1;  // jmp_pc
       op1_sel = 1'b0;  // rs1
-      op1_sel = 1'b1;  // imm
+      op2_sel = 1'b1;  // imm
     end
     U1TYPE,
     U2TYPE: begin
