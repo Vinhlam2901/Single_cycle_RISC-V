@@ -103,7 +103,10 @@ module control_unit (
                 alu_opcode = 4'b0011;
                 br_unsign  = 1'b0;
               end
-              10'b0000100000 : alu_opcode = 4'b0100;  // sltu
+              10'b0000100000 : begin
+                alu_opcode = 4'b0100;  // sltu
+                br_unsign  = 1'b1;
+              end
               10'b0000010000 : alu_opcode = 4'b0101;  // xor
               10'b0000001000 : alu_opcode = 4'b0110;  // sra
               10'b0000000100 : alu_opcode = 4'b0111;  // srl
@@ -167,9 +170,9 @@ module control_unit (
   case (instruction[6:0])
     RTYPE: begin                     // opcode rd, r1, r2
         wb_sel  = 2'b00; // rd
-        pc_sel  = 1'b0;    // pc + 4
-        op1_sel = 1'b0; //rs1
-        op2_sel = 1'b0; //rs2;
+        pc_sel  = 1'b0;  // pc + 4
+        op1_sel = 1'b0;  //rs1
+        op2_sel = 1'b0;  //rs2;
     end
     ITYPE: begin
         wb_sel  = 2'b00; // rd
