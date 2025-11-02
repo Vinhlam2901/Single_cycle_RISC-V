@@ -14,6 +14,7 @@ module lsu (
   input  wire [31:0] i_lsu_addr,
   input  wire [31:0] i_st_data,
   input  wire        i_lsu_wren,
+  input  wire [2:0]  i_func3,
 
   input  wire [31:0] i_io_sw,
 
@@ -36,22 +37,12 @@ module lsu (
 );
 
 //====================================DECLARATION==============================================================
-  localparam DMEM_BASE     = 32'h0000_0000; // 0x000 - 0x7FF
-  localparam PERI_OUT_BASE = 32'h1000_0800; // 0x800 - 0x9FF
-  localparam PERI_IN_BASE  = 32'h1001_0000; // 0xA00 - 0xBFF
-
-  reg  [31:0] ledr;
-  reg  [31:0] ledg;
-  reg  [ 6:0] hex0_3;
-  reg  [ 6:0] hex4_7;
-  reg  [31:0] lcd;
   reg  [31:0] dmem;
 
   wire [15:0] dmem_ptr;
   wire [15:0] out_ptr;
   wire [11:0] in_ptr;
 
-  // next signals cho I/O
   reg [31:0] ledr_next, ledg_next, lcd_next;
   reg [6:0]  hex0_next, hex1_next, hex2_next, hex3_next;
   reg [6:0]  hex4_next, hex5_next, hex6_next, hex7_next;
@@ -67,8 +58,10 @@ module lsu (
   wire        is_out;
   wire        is_in;
 
-  reg        is_byte;
-  reg        is_hb;
+  reg        is_sbyte;
+  reg        is_ubyte;
+  reg        is_shb;
+  reg        is_uhb;
   reg        is_word;
 
   wire        is_ledr;
@@ -80,17 +73,27 @@ module lsu (
 //====================================CODE====================================================================
 
   always_comb begin
-    is_byte = 1'b0;
-    is_hb   = 1'b0;
-    is_word = 1'b0;
-    if(i_lsu_addr[0] && (i_st_data[31:8] === 24'b0)) begin
-      is_byte = 1'b1;
-    end else if (~i_lsu_addr[0] && (i_st_data[15:0] === 16'b0)) begin
-      is_hb = 1'b1;
-    end else begin
-      is_word = 1'b1;
-    end
-    if( is_byte ) begin : bmask_sort
+    is_ubyte = 1'b0;
+    is_sbyte = 1'b0;
+    is_uhb   = 1'b0;
+    is_shb   = 1'b0;
+    is_word  = 1'b0;
+    case (i_func3)
+      3'b000: is_sbyte = 1'b1;
+      3'b001: is_shb   = 1'b1;
+      3'b010: is_word  = 1'b1;
+      3'b100: is_ubyte = 1'b1;
+      3'b101: is_uhb   = 1'b1;
+      default: begin
+              is_ubyte = 1'b0;
+              is_sbyte = 1'b0;
+              is_uhb   = 1'b0;
+              is_shb   = 1'b0;
+              is_word  = 1'b0;
+      end
+    endcase
+
+    if( is_sbyte || is_ubyte) begin : bmask_sort
       case (i_lsu_addr[1:0])                      // check number of immediate
         2'b00:   bmask = 4'b0001;                 // byte 1
         2'b01:   bmask = 4'b0010;                 // byte 2
@@ -98,7 +101,7 @@ module lsu (
         2'b11:   bmask = 4'b1000;                 // byte 4
         default: bmask = 4'b0000;
       endcase
-    end else if ( is_hb ) begin
+    end else if ( is_shb || is_uhb) begin
       case (i_lsu_addr[1:0])                      // check number of immediate
         2'b01,
         2'b11:   bmask = 4'b0000;
@@ -152,25 +155,25 @@ module lsu (
         mem_wren = 1'b1;
         case (bmask)
           4'b0000: mem_wren = 1'b0;
-          4'b0001: st_wdata = {{24{1'b0}}, i_st_data[7:0]               };
-          4'b0010: st_wdata = {{16{1'b0}}, i_st_data[7:0],  {8{1'b0}}   };
-          4'b0100: st_wdata = {{8{1'b0}} , i_st_data[7:0],  {{16{1'b0}}}};
-          4'b1000: st_wdata = {            i_st_data[7:0],  {{24{1'b0}}}};
-          4'b0011: st_wdata = {{16{1'b1}}, i_st_data[15:0]              };
-          4'b1100: st_wdata = {            i_st_data[15:0], {{16{1'b0}}}};
-          4'b1111: st_wdata =              i_st_data;
+          4'b0001,
+          4'b0010,
+          4'b0100,
+          4'b1000: st_wdata = {24'b0, i_st_data[7:0]};
+          4'b0011: st_wdata = {16'b0, i_st_data[15:0]};
+          4'b1100: st_wdata = {i_st_data[15:0], 16'b0};
+          4'b1111: st_wdata =         i_st_data;
           default: begin
-            st_wdata = 32'b0;
-            mem_wren = 1'b0;
+                   st_wdata = 32'b0;
+                   mem_wren = 1'b0;
           end
         endcase
       end else begin
         ld_data = dmem;
       end
     end else if (i_lsu_wren && is_ledr) begin
-        ledr_next = i_st_data;
+        ledr_next = st_wdata;
     end else if (i_lsu_wren && is_ledr) begin
-        ledg_next = i_st_data;
+        ledg_next = st_wdata;
     end else if (i_lsu_wren && is_hex03) begin
           case (bmask)
             4'b0000: begin
@@ -179,27 +182,27 @@ module lsu (
               hex2_next = 7'b0;
               hex3_next = 7'b0;
             end
-            4'b0001: hex0_next = i_st_data[6:0];
-            4'b0010: hex1_next = i_st_data[6:0];
-            4'b0100: hex2_next = i_st_data[6:0];
-            4'b1000: hex3_next = i_st_data[6:0];
+            4'b0001: hex0_next = st_wdata[6:0];
+            4'b0010: hex1_next = st_wdata[6:0];
+            4'b0100: hex2_next = st_wdata[6:0];
+            4'b1000: hex3_next = st_wdata[6:0];
             4'b0011: begin
-              hex0_next = i_st_data[6:0];
-              hex1_next = i_st_data[14:8];
+              hex0_next = st_wdata[6:0];
+              hex1_next = st_wdata[14:8];
               hex2_next = 7'b0;
               hex3_next = 7'b0;
             end
             4'b1100: begin
               hex0_next = 7'b0;
               hex1_next = 7'b0;
-              hex2_next = i_st_data[6:0];
-              hex3_next = i_st_data[14:8];
+              hex2_next = st_wdata[6:0];
+              hex3_next = st_wdata[14:8];
             end
             4'b1111: begin
-              hex0_next = i_st_data[6:0];
-              hex1_next = i_st_data[14:8];
-              hex2_next = i_st_data[22:16];
-              hex3_next = i_st_data[30:24];
+              hex0_next = st_wdata[6:0];
+              hex1_next = st_wdata[14:8];
+              hex2_next = st_wdata[22:16];
+              hex3_next = st_wdata[30:24];
             end
             default: begin
               hex0_next = 7'b0;
@@ -210,13 +213,13 @@ module lsu (
           endcase
       end else if (is_hex47) begin
         if(i_lsu_wren && (bmask == 4'b1111)) begin
-          hex4_next = i_st_data[6:0];
-          hex5_next = i_st_data[14:8];
-          hex6_next = i_st_data[22:16];
-          hex7_next = i_st_data[30:24];
+          hex4_next = st_wdata[6:0];
+          hex5_next = st_wdata[14:8];
+          hex6_next = st_wdata[22:16];
+          hex7_next = st_wdata[30:24];
         end
       end else if (i_lsu_wren && is_lcd) begin
-        lcd_next = i_st_data;
+        lcd_next = st_wdata;
       end else if (~i_lsu_wren) begin
         ld_data = i_io_sw;
       end
@@ -230,7 +233,7 @@ module lsu (
         o_io_hex2 <= 7'b0; o_io_hex3 <= 7'b0;
         o_io_hex4 <= 7'b0; o_io_hex5 <= 7'b0;
         o_io_hex6 <= 7'b0; o_io_hex7 <= 7'b0;
-    end else begin
+    end else if (i_lsu_wren) begin
         o_io_ledr <= ledr_next;
         o_io_ledg <= ledg_next;
         o_io_lcd  <= lcd_next;
@@ -242,27 +245,34 @@ module lsu (
   end
 
   always_comb begin
-    halfword_out = i_lsu_addr[1] ? {ld_data[31:16], {16{1'b0}}} : {{16{1'b0}}, ld_data[15:0]};
 
-    case (i_lsu_addr[1:0])
-        2'b00:   byte_out = ld_data[ 7:0 ];
-        2'b01:   byte_out = ld_data[15:8 ];
-        2'b10:   byte_out = ld_data[23:16];
-        2'b11:   byte_out = ld_data[31:24];
-        default: byte_out = 8'b0;
-    endcase
+    if(is_sbyte || is_ubyte) begin
+      case (i_lsu_addr[1:0])
+          2'b00:   byte_out = ld_data[ 7:0 ];
+          2'b01:   byte_out = ld_data[15:8 ];
+          2'b10:   byte_out = ld_data[23:16];
+          2'b11:   byte_out = ld_data[31:24];
+          default: byte_out = 8'b0;
+      endcase
+    end else if (is_shb || is_uhb) begin
+      case (i_lsu_addr[1:0])
+          2'b00,
+          2'b01:   halfword_out = ld_data[15:0 ];
+          2'b10,
+          2'b11:   halfword_out = ld_data[31:16];
+          default: halfword_out = 16'b0;
+      endcase
+    end
   end
 
   always_comb begin
-      case (bmask)
-          4'b0001,
-          4'b0010,
-          4'b0100,
-          4'b1000: o_ld_data = (i_st_data[31]) ? ({{24{byte_out[7]}}, byte_out}) : ({24'b0, byte_out});
-          4'b0011,
-          4'b1100: o_ld_data = (i_st_data[31]) ? ({{16{halfword_out[15]}}, halfword_out}) : {16'b0, halfword_out};
-          4'b1111: o_ld_data = ld_data;
-          default: o_ld_data = 32'b0;
-      endcase
+    case (i_func3)
+      3'b000:  o_ld_data  = {{24{byte_out[7 ]}}, byte_out    };  // lb
+      3'b001:  o_ld_data  = {{16{halfword_out[15]}}, halfword_out};  // lh
+      3'b010:  o_ld_data  = ld_data;                             // lw
+      3'b100:  o_ld_data  = {{24{1'b0         }}, byte_out    }; // lbu
+      3'b101:  o_ld_data  = {{16{1'b0         }}, halfword_out}; // ;hu
+      default: o_ld_data  = 32'b0;
+    endcase
   end
 endmodule

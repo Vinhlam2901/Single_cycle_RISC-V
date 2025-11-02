@@ -49,7 +49,7 @@ module control_unit (
   //is_and
   assign is_and   =  instruction[12] & instruction[13]  &  instruction[14];
   // concatenat
-  assign rtype = {is_add, is_sub, is_sll, is_slt, is_sltu, is_xor, is_sra, is_srl, is_or, is_and};
+  assign rtype = {is_add, is_sub, is_sll, is_slt, is_sltu, is_xor, is_srl, is_sra, is_or, is_and};
 //==========================ITYPE=========================================================================
   //is_addi
   assign is_addi  = ~instruction[12] & ~instruction[13] & ~instruction[14];
@@ -70,7 +70,7 @@ module control_unit (
   //is_andi
   assign is_andi  =  instruction[12] & instruction[13]  &  instruction[14];
   // concat
-  assign itype = {is_addi, is_slli, is_slti, is_sltiu, is_xori, is_srai, is_srli, is_ori, is_andi};
+  assign itype = {is_addi, is_slli, is_slti, is_sltiu, is_xori, is_srli, is_srai, is_ori, is_andi};
 //==========================BTYPE=========================================================================
   //is_beq
   assign is_beq  = ~instruction[12]  & ~instruction[13] & ~instruction[14];
@@ -99,35 +99,29 @@ module control_unit (
               10'b1000000000 : alu_opcode = 4'b0000;  // add
               10'b0100000000 : alu_opcode = 4'b0001;  // sub
               10'b0010000000 : alu_opcode = 4'b0010;  // sll
-              10'b0001000000 : begin                  // slt
-                alu_opcode = 4'b0011;
-                br_unsign  = 1'b0;
-              end
-              10'b0000100000 : begin
-                alu_opcode = 4'b0100;  // sltu
-                br_unsign  = 1'b1;
-              end
+              10'b0001000000 : alu_opcode = 4'b0011;  // slt
+              10'b0000100000 : alu_opcode = 4'b0100;  // sltu
               10'b0000010000 : alu_opcode = 4'b0101;  // xor
-              10'b0000001000 : alu_opcode = 4'b0110;  // sra
-              10'b0000000100 : alu_opcode = 4'b0111;  // srl
+              10'b0000001000 : alu_opcode = 4'b0110;  // srl
+              10'b0000000100 : alu_opcode = 4'b0111;  // sra
               10'b0000000010 : alu_opcode = 4'b1000;  // or
               10'b0000000001 : alu_opcode = 4'b1001;  // amd
               default        : alu_opcode = 4'b0000;
             endcase
       ITYPE: case (itype)
-              9'b100000000   : alu_opcode = 4'b0000;   // addi
-              9'b010000000   : alu_opcode = 4'b0010;   // slli
-              9'b001000000   : begin                   // slti
-                alu_opcode = 4'b0011;
+              9'b100000000   : begin
+                alu_opcode = 4'b0000;   // addi
                 br_unsign  = 1'b0;
-                end
-              9'b000100000   : alu_opcode = 4'b0100;   // sltiu
-              9'b000010000   : alu_opcode = 4'b0101;   // xori
-              9'b000001000   : begin
-                alu_opcode = 4'b0110;   // srai
-                br_unsign = 1'b0;
               end
-              9'b000000100   : alu_opcode = 4'b0111;   // srli
+              9'b010000000   : alu_opcode = 4'b0010;  // slli
+              9'b001000000   : alu_opcode = 4'b0011;  // slti
+              9'b000100000   : alu_opcode = 4'b0100;  // sltiu
+              9'b000010000   : alu_opcode = 4'b0101;  // xori
+              9'b000001000   : alu_opcode = 4'b0110;  // srli
+              9'b000000100   : begin
+                alu_opcode = 4'b0111;                 // is_srai
+                br_unsign  = 1'b0;
+              end
               9'b000000010   : alu_opcode = 4'b1000;   // ori
               9'b000000001   : alu_opcode = 4'b1001;   // andi
               default        : alu_opcode = 4'b0000;
@@ -156,10 +150,10 @@ module control_unit (
                 br_unsign  = 1'b1;
                 end
               6'b000001: begin
-                alu_opcode = 4'b0100;
+                alu_opcode = 4'b0000;
                 br_unsign  = 1'b1;
                 end
-              default  : alu_opcode = 4'b0000;         // bgeu
+              default  : alu_opcode = 4'b0000;
             endcase
       IJTYPE:            alu_opcode = 4'b0000;
       IITYPE:            alu_opcode = 4'b0000;

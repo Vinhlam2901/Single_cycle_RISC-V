@@ -122,12 +122,12 @@ module single_cycle (
   always_comb begin : op1_sel_branch
     if(inst[6:0] == 7'b1100011 && op1_sel) begin
       case (inst[14:12])
-        3'b000: op1 = ( br_equal)                          ? o_pc_debug : rs1_data; // beq
-        3'b001: op1 = (~br_equal)                          ? o_pc_debug : rs1_data; // bne
-        3'b100: op1 = ( br_less )                          ? o_pc_debug : rs1_data; // blt
-        3'b101: op1 = (~br_less && ~br_equal)              ? o_pc_debug : rs1_data; // bge
-        3'b110: op1 = ( br_less &&  br_unsign)             ? o_pc_debug : rs1_data; // bltu
-        3'b111: op1 = (~br_less && ~br_equal && br_unsign) ? o_pc_debug : rs1_data; // bgeu
+        3'b000: op1 = ( br_equal                         ) ? o_pc_debug : rs1_data; // beq
+        3'b001: op1 = (~br_equal                         ) ? o_pc_debug : rs1_data; // bne
+        3'b100: op1 = ( br_less                          ) ? o_pc_debug : rs1_data; // blt
+        3'b101: op1 = (~br_less || br_equal              ) ? o_pc_debug : rs1_data; // bge > or =
+        3'b110: op1 = ( br_less && br_unsign             ) ? o_pc_debug : rs1_data; // bltu
+        3'b111: op1 = (~br_less || br_equal && br_unsign ) ? o_pc_debug : rs1_data; // bgeu
         default:op1 = op1;
       endcase
     end else if (inst[6:0] == U1TYPE) begin
@@ -152,20 +152,22 @@ module single_cycle (
   always_comb begin
     // has rs2'data if stype to store rs2'data to mem
     wr_data    = 32'b0;
-    if(inst[6:0] == STYPE) begin
-      wr_data = rs2_data;
+    if(inst[6:0] == STYPE || inst[6:0] == ILTYPE) begin
+      if(inst[6:0] == STYPE) begin
+        wr_data = rs2_data;
+      end else if (inst[6:0] == ILTYPE) begin
+        wr_data = rs1_data;
+      end
       case (inst[14:12])                            // check func3
         3'b000,
-        3'b100: wr_data = wr_data  & 32'h000000FF;  // bit 8 == 0
+        3'b100:   wr_data = wr_data & 32'h000000FF;
         3'b001,
-        3'b101: wr_data = wr_data  & 32'h0000FFFF;  // bit 16 == 0
-        3'b010: wr_data = wr_data  & 32'hFFFFFFFF;
-        3'b100: wr_data = wr_data  & 32'h800000FF;  // bit 31 sign
-        3'b101: wr_data = wr_data  & 32'h8000FFFF;  // bit 31 sign
-        default : wr_data = wr_data  & 32'hFFFFFFFF;
+        3'b101:   wr_data = wr_data & 32'h0000FFFF;
+        3'b010:   wr_data = wr_data & 32'hFFFFFFFF;
+        3'b100:   wr_data = wr_data & 32'h000000FF;
+        3'b101:   wr_data = wr_data & 32'h0000FFFF;
+        default : wr_data = wr_data & 32'hFFFFFFFF;
       endcase
-    end else if (inst[6:0] == ILTYPE) begin
-      wr_data = rs1_data;
     end
   end
 
@@ -175,6 +177,7 @@ module single_cycle (
             .i_lsu_addr (rd_data_o),
             .i_st_data  (wr_data),
             .i_lsu_wren (mem_wren),
+            .i_func3    (inst[14:12]),
             .i_io_sw    (i_io_sw),
             .o_io_hex0  (o_io_hex0),
             .o_io_hex1  (o_io_hex1),
@@ -202,9 +205,9 @@ module single_cycle (
           3'b000: jmp_pc = ( br_equal)                         ? rd_data_o : (o_pc_debug + 32'd4); // beq
           3'b001: jmp_pc = (~br_equal)                         ? rd_data_o : (o_pc_debug + 32'd4); // bne
           3'b100: jmp_pc = ( br_less)                          ? rd_data_o : (o_pc_debug + 32'd4); // blt
-          3'b101: jmp_pc = (~br_less && br_equal)              ? rd_data_o : (o_pc_debug + 32'd4); // bge
+          3'b101: jmp_pc = (~br_less || br_equal)              ? rd_data_o : (o_pc_debug + 32'd4); // bge
           3'b110: jmp_pc = ( br_less && br_unsign)             ? rd_data_o : (o_pc_debug + 32'd4); // bltu
-          3'b111: jmp_pc = (~br_less && br_equal && br_unsign) ? rd_data_o : (o_pc_debug + 32'd4); // bgeu
+          3'b111: jmp_pc = (~br_less || br_equal && br_unsign) ? rd_data_o : (o_pc_debug + 32'd4); // bgeu
           default:jmp_pc = rd_data_o; // For JALR
         endcase
       end
@@ -217,11 +220,3 @@ module single_cycle (
     endcase
   end
 endmodule
-// always_comb begin
-//   $strobe("----------------------------------------------------------------------------------------");
-//   $strobe("ins = %h | opcode = %b | wb = %h        | op = %h ", inst, inst[6:0], wb_sel, alu_op);
-//   $strobe("rs1_addr = %h  | rs1 = %h   | rs2_addr = %h | rs2 = %h", inst[19:15], op1, inst[24:20], op2);
-//   $strobe("rd_addr = %h   | data = %h  | rdes_addr = %h ", inst[11:7], wb_data_o, rdes_addr);
-//   $strobe("imm_ex = %h, br_equal = %b, read_data = %h", imm_ex, br_equal, read_data);
-//   $strobe("rd_address = %h, o_pc_debug = %h, next_pc = %h, o_io_ledr = %h", rd_address, o_pc_debug, next_pc, o_io_ledr);
-// ends
