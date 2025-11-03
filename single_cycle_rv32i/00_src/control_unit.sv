@@ -41,7 +41,7 @@ module control_unit (
   //is_xor
   assign is_xor   = ~instruction[12] & ~instruction[13] &  instruction[14];
   //is_sra
-  assign is_sra   =  instruction[12] & ~instruction[13] &  instruction[14]  & instruction[30];
+  assign is_sra   =  instruction[12] & ~instruction[13] &  instruction[14]  &  instruction[30];
   //is_srl
   assign is_srl   =  instruction[12] & ~instruction[13] &  instruction[14]  & ~instruction[30];
   //is_or
@@ -163,34 +163,34 @@ module control_unit (
     endcase
   case (instruction[6:0])
     RTYPE: begin                     // opcode rd, r1, r2
-        wb_sel  = 2'b00; // rd
-        pc_sel  = 1'b0;  // pc + 4
-        op1_sel = 1'b0;  //rs1
-        op2_sel = 1'b0;  //rs2;
+      wb_sel   = 2'b00; // rd
+      pc_sel   = 1'b0;  // pc + 4
+      op1_sel  = 1'b0;  //rs1
+      op2_sel  = 1'b0;  //rs2;
     end
     ITYPE: begin
-        wb_sel  = 2'b00; // rd
-        pc_sel  = 1'b0;  // pc + 4
-        op1_sel = 1'b0;  // rs1
-        op2_sel = 1'b1;  // imm
+      wb_sel   = 2'b00; // rd
+      pc_sel   = 1'b0;  // pc + 4
+      op1_sel  = 1'b0;  // rs1
+      op2_sel  = 1'b1;  // imm
     end
     ILTYPE: begin
-        wb_sel  = 2'b11; // read_data
-        pc_sel  = 1'b0;  // pc + 4
-        op1_sel = 1'b0;  // rs1
-        op2_sel = 1'b1;  // imm_ex;
+      wb_sel   = 2'b11; // read_data
+      pc_sel   = 1'b0;  // pc + 4
+      op1_sel  = 1'b0;  // rs1
+      op2_sel  = 1'b1;  // imm_ex;
     end
     BTYPE: begin
-        wb_sel  = 2'b01;   //jmp_pc
-        pc_sel  = 1'b1;    // jmp_pc
-        op1_sel = 1'b1;    // pc
-        op2_sel = 1'b1;    // imm
+      wb_sel   = 2'b01;   //jmp_pc
+      pc_sel   = 1'b1;    // jmp_pc
+      op1_sel  = 1'b1;    // pc
+      op2_sel  = 1'b1;    // imm
     end
     STYPE: begin
-        op1_sel = 1'b0; // rs1
-        op2_sel = 1'b1; // imm
-        pc_sel  = 1'b0; // pc + 4
-        mem_wren = 1'b1;
+      op1_sel  = 1'b0; // rs1
+      op2_sel  = 1'b1; // imm
+      pc_sel   = 1'b0; // pc + 4
+      mem_wren = 1'b1;
     end
     IJTYPE: begin
       wb_sel  = 2'b10; // rd = pc +4
@@ -212,10 +212,10 @@ module control_unit (
       op2_sel = 1'b1;  // imm
     end
     default: begin
-        op1_sel = 1'b0; // rs1_data
-        op2_sel = 1'b0; // rs2_data
-        pc_sel  = 1'b0;
-        wb_sel  = 2'b00;
+      op1_sel = 1'b0; // rs1_data
+      op2_sel = 1'b0; // rs2_data
+      pc_sel  = 1'b0;
+      wb_sel  = 2'b00;
     end
   endcase
 end

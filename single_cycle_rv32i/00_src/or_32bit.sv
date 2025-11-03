@@ -3,5 +3,5 @@ module or_32bit (
   input       [31:0] rs2_i,
   output wire [31:0] rd_o
 );
-    assign rd_o = rs1_i | rs2_i; // Perform bitwise AND operation
+    assign rd_o = rs1_i | rs2_i;
 endmodule

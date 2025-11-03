@@ -16,9 +16,8 @@ module immgen (
   always_comb begin : immgen_msb_extend
     case (inst_i[6:0])
       //Itype msb extend when func3 == 0, 2, 4, 5, 6, 7,
-      //-> is_msb = ~fun3[14] + func[13]
       IITYPE,
-      ITYPE  : is_msb = ~inst_i[14]| inst_i[13];
+      ITYPE  : is_msb = (inst_i[14] | ~inst_i[12]);
       default: is_msb = 1'b0;
     endcase
   end

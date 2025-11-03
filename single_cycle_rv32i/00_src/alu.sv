@@ -33,7 +33,7 @@ module alu (
                                 .rs1_i(i_op_a),
                                 .rs2_i(i_op_b),
                                 .rd_o(rd_xor)
-                                ); //OR
+                                );
 
   add_subtract  subtract_module (
                                 .a_i      (i_op_a),
