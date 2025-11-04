@@ -16,7 +16,7 @@ module memory (
  output reg [31:0] o_rdata
 );
   integer  i;
-  reg [31:0] mem [0: 16383]; // 2kB
+  reg [31:0] mem [0: 16383];
   reg [31:0] mem_st;
   wire [13:0] i_addr_fix;
 
