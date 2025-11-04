@@ -4,7 +4,7 @@
 // File            : control_unit.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 13/9/2025
-// Updated date    : 13/9/2025
+// Updated date    : 4/11/2025 - Finished
 //=============================================================================================================
 import package_param::*;
 module control_unit (
@@ -18,6 +18,7 @@ module control_unit (
   output reg  [1:0]   wb_sel,
   output reg          mem_wren
 );
+//===================================DECLARATION==================================================
   wire is_add, is_sub, is_and, is_or, is_xor, is_slt, is_sltu, is_sra, is_srl, is_sll;
   wire is_addi, is_xori, is_ori, is_andi, is_slli, is_srli, is_srai, is_slti, is_sltiu;
   wire is_beq, is_bne, is_blt, is_bge, is_bltu, is_bgeu;
@@ -86,7 +87,7 @@ module control_unit (
   assign is_bgeu =  instruction[12]  & instruction[13]  &  instruction[14];
   // concat
   assign btype = {is_beq, is_bne, is_blt, is_bge, is_bltu, is_bgeu};
-//==========================CASE=========================================================================
+//==========================ALU_OPCODE=========================================================================
   always_comb begin : signal_sel
     br_unsign   = 1'b1;
     wb_sel      = 2'b00;
@@ -161,6 +162,7 @@ module control_unit (
       U2TYPE:            alu_opcode = 4'b0000;         // auipc using pc + imm
       default:           alu_opcode = 4'b0000;
     endcase
+//==================================WRITE_BACK===============================================
   case (instruction[6:0])
     RTYPE: begin                     // opcode rd, r1, r2
       wb_sel   = 2'b00; // rd

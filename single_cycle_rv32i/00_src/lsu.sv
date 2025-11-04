@@ -4,7 +4,7 @@
 // File            : lsu.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
-// Updated date    : 23/10/2025
+// Updated date    : 4/11/2025 - Finished
 //============================================================================================================
 import package_param::*;
 module lsu (
@@ -37,26 +37,20 @@ module lsu (
 );
 
 //====================================DECLARATION==============================================================
-  reg  [31:0] dmem;
+  wire       is_ledr;
+  wire       is_ledg;
+  wire       is_hex03;
+  wire       is_hex47;
+  wire       is_lcd;
+  wire       is_sw;
+
+  wire       is_dmem;
+  wire       is_out;
+  wire       is_in;
 
   wire [15:0] dmem_ptr;
-  wire [15:0] out_ptr;
-  wire [11:0] in_ptr;
 
-  reg [31:0] ledr_next, ledg_next, lcd_next;
-  reg [6:0]  hex0_next, hex1_next, hex2_next, hex3_next;
-  reg [6:0]  hex4_next, hex5_next, hex6_next, hex7_next;
-
-  reg [31:0] st_wdata;
-  reg [31:0] ld_data;
-  reg [15:0] halfword_out;
-  reg [7:0]  byte_out;
-
-  reg [3:0]  bmask;
   reg        mem_wren;
-  wire        is_dmem;
-  wire        is_out;
-  wire        is_in;
 
   reg        is_sbyte;
   reg        is_ubyte;
@@ -64,14 +58,20 @@ module lsu (
   reg        is_uhb;
   reg        is_word;
 
-  wire        is_ledr;
-  wire        is_ledg;
-  wire        is_hex03;
-  wire        is_hex47;
-  wire        is_lcd;
-  wire        is_sw;
-//====================================CODE====================================================================
+  reg  [31:0] dmem;
 
+  reg  [31:0] ledr_next, ledg_next, lcd_next;
+  reg  [6:0]  hex0_next, hex1_next, hex2_next, hex3_next;
+  reg  [6:0]  hex4_next, hex5_next, hex6_next, hex7_next;
+
+  reg  [31:0] st_wdata;
+  reg  [31:0] ld_data;
+  reg  [15:0] halfword_out;
+  reg  [7:0]  byte_out;
+
+  reg  [3:0]  bmask;
+
+//====================================CODE====================================================================
   always_comb begin
     is_ubyte = 1'b0;
     is_sbyte = 1'b0;
@@ -90,9 +90,8 @@ module lsu (
               is_uhb   = 1'b0;
               is_shb   = 1'b0;
               is_word  = 1'b0;
-      end
+              end
     endcase
-
     if( is_sbyte || is_ubyte) begin : bmask_sort
       case (i_lsu_addr[1:0])                      // check number of immediate
         2'b00:   bmask = 4'b0001;                 // byte 1
@@ -116,7 +115,7 @@ module lsu (
 
   assign dmem_ptr  = i_lsu_addr[15:0];
 
-  assign is_dmem   = ~i_lsu_addr[28]; //0000 -> bit 28 == 0
+  assign is_dmem   = ~i_lsu_addr[28];                        //0000 -> bit 28 == 0
   assign is_out    =  (i_lsu_addr[28] && ~(i_lsu_addr[16])); //1000 -> a[28] & ~a[16]
   assign is_in     =  (i_lsu_addr[28] &&   i_lsu_addr[16] ); //1001 -> a[28] & a[16]
 
@@ -225,7 +224,7 @@ module lsu (
       end
     end
   always_ff @(posedge i_clk or negedge i_reset) begin
-    if (!i_reset) begin
+    if (~i_reset) begin
         o_io_ledr <= 32'b0;
         o_io_ledg <= 32'b0;
         o_io_lcd  <= 32'b0;
@@ -267,11 +266,11 @@ module lsu (
 
   always_comb begin
     case (i_func3)
-      3'b000:  o_ld_data  = {{24{byte_out[7 ]}}, byte_out    };  // lb
-      3'b001:  o_ld_data  = {{16{halfword_out[15]}}, halfword_out};  // lh
-      3'b010:  o_ld_data  = ld_data;                             // lw
-      3'b100:  o_ld_data  = {{24{1'b0         }}, byte_out    }; // lbu
-      3'b101:  o_ld_data  = {{16{1'b0         }}, halfword_out}; // ;hu
+      3'b000:  o_ld_data  = {{24{byte_out[7]     }}, byte_out    }; // lb
+      3'b001:  o_ld_data  = {{16{halfword_out[15]}}, halfword_out}; // lh
+      3'b010:  o_ld_data  = ld_data;                                // lw
+      3'b100:  o_ld_data  = {{24{1'b0            }}, byte_out    }; // lbu
+      3'b101:  o_ld_data  = {{16{1'b0            }}, halfword_out}; // lhu
       default: o_ld_data  = 32'b0;
     endcase
   end

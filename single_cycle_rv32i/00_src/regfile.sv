@@ -3,7 +3,7 @@
 // Module          : Register File// File            : regfile.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
-// Updated date    : 16/9/2025
+// Updated date    : 4/11/2025 - Finished
 //===========================================================================================
 module regfile (
     input  wire         i_clk,
@@ -18,11 +18,9 @@ module regfile (
     output reg  [31:0]  o_rs1_data,
     output reg  [31:0]  o_rs2_data
 );
-//===========================================================================================
-// Declaration
-// reg  [31:0] regfile [0:31];
+//==================================Declaration=========================================================
   wire [31:0] data_o;
-  wire [31:0] q_o0, q_o1, q_o2, q_o3, q_o4, q_o5, q_o6, q_o7, //tao ra 32 bus q_o cho 32 register
+  wire [31:0] q_o0, q_o1, q_o2, q_o3, q_o4, q_o5, q_o6, q_o7,
               q_o8, q_o9, q_o10, q_o11, q_o12, q_o13, q_o14, q_o15,
               q_o16, q_o17, q_o18, q_o19, q_o20, q_o21, q_o22, q_o23,
               q_o24, q_o25, q_o26, q_o27, q_o28, q_o29, q_o30, q_o31;
@@ -116,49 +114,3 @@ module regfile (
                       .s(i_rs2_addr), .y_o(o_rs2_data)
                     );
 endmodule
-
-
-//  always_ff @(posedge i_clk or negedge i_reset) begin : regfile_32register
-//       if (~i_reset || i_rd_addr == 5'b00000) begin
-//             regfile[0] <= 0;
-//             regfile[1] <= 0;
-//             regfile[2] <= 0;
-//             regfile[3] <= 0;
-//             regfile[4] <= 0;
-//             regfile[5] <= 0;
-//             regfile[6] <= 0;
-//             regfile[7] <= 0;
-//             regfile[8] <= 0;
-//             regfile[9] <= 0;
-//             regfile[10] <= 0;
-//             regfile[11] <= 0;
-//             regfile[12] <= 0;
-//             regfile[13] <= 0;
-//             regfile[14] <= 0;
-//             regfile[15] <= 0;
-//             regfile[16] <= 0;
-//             regfile[17] <= 0;
-//             regfile[18] <= 0;
-//             regfile[19] <= 0;
-//             regfile[20] <= 0;
-//             regfile[21] <= 0;
-//             regfile[22] <= 0;
-//             regfile[23] <= 0;
-//             regfile[24] <= 0;
-//             regfile[25] <= 0;
-//             regfile[26] <= 0;
-//             regfile[27] <= 0;
-//             regfile[28] <= 0;
-//             regfile[29] <= 0;
-//             regfile[30] <= 0;
-//             regfile[31] <= 0; 
-//       end else if (enb_i && i_rd_wren && i_rd_addr !== 5'b00000) begin
-//         regfile[i_rd_addr] <= i_rd_data;
-//       end
-//     end
-//     always_comb begin : regfile_rs_data
-//       o_rs1_data = (i_rs1_addr == 5'b00000 ) ? 32'b0 : regfile[i_rs1_addr];
-//       o_rs2_data = (i_rs2_addr == 5'b00000)  ? 32'b0 : regfile[i_rs2_addr];
-//       o_rs1_data = (i_rs1_addr == i_rd_addr) ? i_rd_data : o_rs1_data;
-//       o_rs2_data = (i_rs2_addr == i_rd_addr) ? i_rd_data : o_rs2_data;
-//     end

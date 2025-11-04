@@ -4,7 +4,7 @@
 // File            : single_cycle.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
-// Updated date    : 26/10/2025
+// Updated date    : 4/11/2025 - Finished
 //=============================================================================================================
 import package_param::*;
 module single_cycle (
@@ -40,19 +40,20 @@ module single_cycle (
   reg           op1_sel;
   wire          op2_sel;
   wire  [3:0]   alu_op;
-  wire          rd_wren, mem_wren;
+  wire          rd_wren;
+  wire          mem_wren;
   wire          br_unsign;
   wire          br_less;
   wire          br_equal;
   wire  [31:0]  rs1_data;
   reg   [31:0]  op1;
-  wire  [31:0]  rs2_data, op2;
+  wire  [31:0]  rs2_data;
+  wire  [31:0]  op2;
   wire  [31:0]  imm_ex;
   reg   [31:0]  wb_data_o;
   reg   [31:0]  rd_data_o;
   reg   [31:0]  wr_data;
   reg   [31:0]  read_data;
-  wire [6:0] opcode;
   reg   [31:0]  mem           [0:2047];   //2kB
 
 //==================Instance=====================================================================================
@@ -80,47 +81,46 @@ module single_cycle (
       inst = 32'h00000013;
     end
   end
-  assign opcode = inst[6:0];
 //==================REGFILE========================================================================================
-  regfile regfile (
-                  .i_clk      (i_clk),
-                  .i_reset    (i_reset),
-                  .i_rs1_addr (inst[19:15]),
-                  .i_rs2_addr (inst[24:20]),
-                  .i_rd_addr  (inst[11:7]),
-                  .i_rd_data  (wb_data_o),
-                  .i_rd_wren  (rd_wren),
-                  .o_rs1_data (rs1_data),
-                  .o_rs2_data (rs2_data)
-                 );
+  regfile       regfile      (
+                              .i_clk      (i_clk       ),
+                              .i_reset    (i_reset     ),
+                              .i_rs1_addr (inst[19:15] ),
+                              .i_rs2_addr (inst[24:20] ),
+                              .i_rd_addr  (inst[11:7]  ),
+                              .i_rd_data  (wb_data_o   ),
+                              .i_rd_wren  (rd_wren     ),
+                              .o_rs1_data (rs1_data    ),
+                              .o_rs2_data (rs2_data    )
+                             );
 //==================CONTROL_UNIT=====================================================================================
-  control_unit control_unit (
-                   .instruction(inst),
-                   .pc_sel     (pc_sel),
-                   .br_unsign  (br_unsign),
-                   .op1_sel    (op1_sel),
-                   .op2_sel    (op2_sel),
-                   .alu_opcode (alu_op),
-                   .rd_wren    (rd_wren),
-                   .wb_sel     (wb_sel),
-                   .mem_wren   (mem_wren)
-                  );
+  control_unit  control_unit (
+                              .instruction(inst      ),
+                              .pc_sel     (pc_sel    ),
+                              .br_unsign  (br_unsign ),
+                              .op1_sel    (op1_sel   ),
+                              .op2_sel    (op2_sel   ),
+                              .alu_opcode (alu_op    ),
+                              .rd_wren    (rd_wren   ),
+                              .wb_sel     (wb_sel    ),
+                              .mem_wren   (mem_wren  )
+                              );
 //==================IMMGEN==============================================================================================
-  immgen immgen  (
-                  .inst_i (inst),
-                  .imm_o  (imm_ex)
-                 );
+  immgen        immgen       (
+                              .inst_i (inst   ),
+                              .imm_o  (imm_ex )
+                             );
 //==================BRCOMP=========================================================================================
-  brcomp branch_compare (
-                .i_rs1_data (rs1_data),
-                .i_rs2_data (rs2_data),
-                .i_br_un    (br_unsign),
-                .o_br_less  (br_less),
-                .o_br_equal (br_equal)
-               );
+  brcomp        branch_compare (
+                              .i_rs1_data (rs1_data),
+                              .i_rs2_data (rs2_data),
+                              .i_br_un    (br_unsign),
+                              .o_br_less  (br_less),
+                              .o_br_equal (br_equal)
+                              );
 //==================OPERATION_1=======================================================================================
   always_comb begin : op1_sel_branch
-    if(inst[6:0] == 7'b1100011 && op1_sel) begin
+    if(inst[6:0] == STYPE && op1_sel) begin
       case (inst[14:12])
         3'b000: op1 = ( br_equal                         ) ? o_pc_debug : rs1_data; // beq
         3'b001: op1 = (~br_equal                         ) ? o_pc_debug : rs1_data; // bne

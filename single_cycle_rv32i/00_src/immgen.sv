@@ -4,7 +4,7 @@
 // File            : immgen.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
-// Updated date    : 31/10/2025
+// Updated date    : 4/11/2025 - Finished
 //=====================================================================================================
 import package_param::*;
 module immgen (

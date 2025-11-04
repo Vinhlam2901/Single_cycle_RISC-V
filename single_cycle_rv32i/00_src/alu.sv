@@ -4,7 +4,7 @@
 // File            : alu.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
-// Updated date    : 21/9/2025
+// Updated date    : 4/11/2025 - Finished
 //===========================================================================================
 module alu (
   input  wire  [31:0] i_op_a,
@@ -33,7 +33,7 @@ module alu (
                                 .rs1_i(i_op_a),
                                 .rs2_i(i_op_b),
                                 .rd_o(rd_xor)
-                                );
+                                ); // XOR
 
   add_subtract  subtract_module (
                                 .a_i      (i_op_a),

@@ -4,7 +4,7 @@
 // File            : brcomp.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 10/9/2025
-// Updated date    : 12/9/2025
+// Updated date    : 4/11/2025 - Finished
 //===========================================================================================
 module brcomp (
     input  wire [31:0] i_rs1_data,
@@ -13,20 +13,13 @@ module brcomp (
     output wire        o_br_equal,
     output wire        o_br_less
 );
+//===============================================DECLARATION=========================================
   wire [31:0] sub_o;
   wire cout, same_sign, diff_sign;
   wire o_br_less_uns, o_br_less_s;
   wire o_br_less1, o_br_less2, o_br_less3;
-  //add_subtract S1 ( .a_i(i_rs1_data), .b_i(i_rs2_data), .cin_i(1'b1), .result_o(sub_o), .cout_o(cout));
-  //assign mux_out = (i_br_un) ? cout : ~sub_o[31];
-  //assign less_sign1 = mux_out ^ ~i_br_un;
-  //overflow check
-  // assign ltemp1 = i_rs1_data[31] ^ i_rs2_data[31];
-  // assign ltemp2 = i_rs1_data[31] ^ sub_o[31];
-  // assign ltemp3 = ltemp1 & ltemp2;
-  // assign ltemp4 = ltemp3 ^ sub_o[31];
-  //assign less_sign2 = ltemp4 & ~i_br_un;
-  assign {cout, sub_o} = i_rs1_data - i_rs2_data;
+//===============================================CODE================================================
+  add_subtract S1 (.a_i(i_rs1_data),.b_i(i_rs2_data),.cin_i(1'b1),.result_o(sub_o),.cout_o(cout));
   // sign check
   assign  same_sign     = (i_rs1_data[31] && i_rs2_data[31]) ? 1'b1 : 1'b0;  // if same sign : 1
   assign  diff_sign     = (i_rs1_data[31] ^  i_rs2_data[31]) ? 1'b1 : 1'b0;  // if diff sign : 1
