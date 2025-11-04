@@ -219,7 +219,7 @@ module lsu (
         end
       end else if (i_lsu_wren && is_lcd) begin
         lcd_next = st_wdata;
-      end else if (~i_lsu_wren) begin
+      end else if (~i_lsu_wren && is_sw) begin
         ld_data = i_io_sw;
       end
     end
