@@ -119,7 +119,7 @@ module lsu (
   assign is_out    =  (i_lsu_addr[28] && ~(i_lsu_addr[16])); //1000 -> a[28] & ~a[16]
   assign is_in     =  (i_lsu_addr[28] &&   i_lsu_addr[16] ); //1001 -> a[28] & a[16]
 
-  assign is_ledr   = is_out && (~i_lsu_addr[14] && ~i_lsu_addr[13] && ~i_lsu_addr[12]); // 0x1000_0xxx  // bug
+  assign is_ledr   = is_out && (~i_lsu_addr[14] && ~i_lsu_addr[13] && ~i_lsu_addr[12]); // 0x1000_0xxx
   assign is_ledg   = is_out && (~i_lsu_addr[14] && ~i_lsu_addr[13] &&  i_lsu_addr[12]); // 0x1000_1xxx
   assign is_hex03  = is_out && (~i_lsu_addr[14] &&  i_lsu_addr[13] && ~i_lsu_addr[12]); // 0x1000_2xxx
   assign is_hex47  = is_out && (~i_lsu_addr[14] &&  i_lsu_addr[13] &&  i_lsu_addr[12]); // 0x1000_3xxx
