@@ -1,3 +1,11 @@
+//===========================================================================================
+// Project         : Single Cycle of RISV - V
+// Module          : XOR 32 bit
+// File            : xor_32bit.sv
+// Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
+// Create date     : 9/9/2025
+// Updated date    : 6/11/2025 - Finished
+//===========================================================================================
 module xor_32bit (
   input  wire [31:0] rs1_i,
   input  wire [31:0] rs2_i,

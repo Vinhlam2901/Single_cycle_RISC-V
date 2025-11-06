@@ -1,3 +1,11 @@
+//===========================================================================================
+// Project         : Single Cycle of RISV - V
+// Module          : Module Adder and Subtractor Selectable
+// File            : add_subtract.sv
+// Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
+// Create date     : 9/9/2025
+// Updated date    : 6/11/2025 - Finished
+//===========================================================================================
 module add_subtract (
     input  wire [31:0] a_i,
     input  wire [31:0] b_i,

@@ -1,3 +1,11 @@
+//===========================================================================================
+// Project         : Single Cycle of RISV - V
+// Module          : Decoder 5 to 32
+// File            : decoder_5to32.sv
+// Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
+// Create date     : 9/9/2025
+// Updated date    : 6/11/2025 - Finished
+//===========================================================================================
 module decoder_5to32 (
     input       [4:0]  a_i,
     output wire [31:0] out_o

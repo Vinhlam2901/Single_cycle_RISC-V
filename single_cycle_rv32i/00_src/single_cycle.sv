@@ -4,7 +4,7 @@
 // File            : single_cycle.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
-// Updated date    : 4/11/2025 - Finished
+// Updated date    : 6/11/2025 - Finished
 //=============================================================================================================
 import package_param::*;
 module single_cycle (
@@ -35,6 +35,7 @@ module single_cycle (
   reg   [31:0]  inst;
   reg   [31:0]  next_pc;
   reg   [31:0]  jmp_pc;
+  wire  [31:0]  pc_plus4;
   wire          pc_sel;
   wire  [1:0]   wb_sel;
   reg           op1_sel;
@@ -54,7 +55,7 @@ module single_cycle (
   reg   [31:0]  rd_data_o;
   reg   [31:0]  wr_data;
   reg   [31:0]  read_data;
-  reg   [31:0]  mem           [0:2047];   //2kB
+  reg   [31:0]  mem           [0:8095];   //8kB
 
 //==================Instance=====================================================================================
 //==================PC=============================================================================================
@@ -66,8 +67,11 @@ module single_cycle (
         o_pc_debug <= next_pc;
     end
   end
-
-  assign next_pc = (pc_sel) ? jmp_pc : (o_pc_debug + 32'd4);
+  pc_reg PCplus4 (
+                  .pc_reg(o_pc_debug),
+                  .pc_o(pc_plus4)
+                 );
+  assign next_pc = (pc_sel) ? jmp_pc : pc_plus4;
 //==================IMEM=========================================================================================
   initial begin : instruction
     $readmemh("../02_test/isa_4b.hex", mem);

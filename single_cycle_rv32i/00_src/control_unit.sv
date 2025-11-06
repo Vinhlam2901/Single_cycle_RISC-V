@@ -4,7 +4,7 @@
 // File            : control_unit.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 13/9/2025
-// Updated date    : 4/11/2025 - Finished
+// Updated date    : 6/11/2025 - Finished
 //=============================================================================================================
 import package_param::*;
 module control_unit (

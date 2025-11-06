@@ -1,3 +1,11 @@
+//===========================================================================================
+// Project         : Single Cycle of RISV - V
+// Module          : Multiplexer 32 to 1
+// File            : mux_32to1.sv
+// Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
+// Create date     : 9/9/2025
+// Updated date    : 6/11/2025 - Finished
+//===========================================================================================
 module mux_32to1 (
     input       [31:0] d0, d1, d2, d3, d4, d5, d6, d7,
                        d8, d9, d10, d11, d12, d13, d14, d15,

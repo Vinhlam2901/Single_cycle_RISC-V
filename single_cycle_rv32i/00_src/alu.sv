@@ -4,7 +4,7 @@
 // File            : alu.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
-// Updated date    : 4/11/2025 - Finished
+// Updated date    : 6/11/2025 - Finished
 //===========================================================================================
 module alu (
   input  wire  [31:0] i_op_a,

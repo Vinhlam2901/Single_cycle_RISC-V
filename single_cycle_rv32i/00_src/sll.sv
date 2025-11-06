@@ -1,3 +1,11 @@
+//===========================================================================================
+// Project         : Single Cycle of RISV - V
+// Module          : Module Shift Left Logic
+// File            : sll.sv
+// Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
+// Create date     : 9/9/2025
+// Updated date    : 6/11/2025 - Finished
+//===========================================================================================
 module sll (
   input       [31:0] rs1_data,
   input       [31:0] rs2_data,
