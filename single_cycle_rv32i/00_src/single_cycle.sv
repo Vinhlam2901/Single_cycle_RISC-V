@@ -67,7 +67,7 @@ module single_cycle (
                             );
 //==================PC=============================================================================================
 
-  always_ff @(posedge i_clk or negedge i_reset) begin: pc_reg
+  always_ff @(posedge clk_div or negedge i_reset) begin: pc_reg
     if (~i_reset) begin
         o_pc_debug <= 32'b0;
     end else begin
@@ -81,13 +81,13 @@ module single_cycle (
   assign next_pc = (pc_sel) ? jmp_pc : pc_plus4;
 //==================IMEM=========================================================================================
   initial begin : instruction
-    $readmemh("../02_test/isa_4b.hex", mem);
+    $readmemh("../02_test/test.dump", mem);
   end
 
   assign inst = mem[o_pc_debug[31:2]];
 //==================REGFILE========================================================================================
   regfile       regfile      (
-                              .i_clk      (i_clk     ),
+                              .i_clk      (clk_div     ),
                               .i_reset    (i_reset     ),
                               .i_rs1_addr (inst[19:15] ),
                               .i_rs2_addr (inst[24:20] ),
@@ -177,7 +177,7 @@ module single_cycle (
   end
 
   lsu lsu (
-            .i_clk      (i_clk),
+            .i_clk      (clk_div),
             .i_reset    (i_reset),
             .i_lsu_addr (rd_data_o),
             .i_st_data  (wr_data),
