@@ -10,6 +10,7 @@ import package_param::*;
 module control_unit (
   input  wire  [31:0] instruction,
   output reg          pc_sel,
+  output reg          o_inst_valid,
   output reg          br_unsign,
   output reg          op1_sel,
   output reg          op2_sel,
@@ -28,7 +29,21 @@ module control_unit (
   wire [4:0] iltype;
   wire [2:0] stype;
   wire [5:0] btype;
-  //==========================RTYPE=========================================================================
+//==========================RTYPE=========================================================================
+  always_comb begin : inst_valid
+    case(instruction[6:0])
+      RTYPE,
+      ITYPE,
+      ILTYPE,
+      STYPE,
+      BTYPE,
+      IJTYPE,
+      U1TYPE,
+      U2TYPE: o_inst_valid = 1'b1;
+      default: o_inst_valid = 1'b0;
+    endcase
+  end
+//==========================RTYPE=========================================================================
   //is_add
   assign is_add   = ~instruction[12] & ~instruction[13] & ~instruction[14] & ~instruction[30];
   //is_sub

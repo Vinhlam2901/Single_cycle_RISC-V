@@ -1,9 +1,5 @@
-//===============================================
-// Module : Clock Divider
-// Divide 50MHz clock to slower clock
-//===============================================
 module clk_divider #(
-    parameter DIV_VALUE = 250_000  // 50MHz / 250k = 200Hz toggle => 100Hz full period
+    parameter DIV_VALUE = 250000  // 50 MHz / 250k = 200Hz toggle => 100Hz full period
 )(
     input  wire i_clk,   // 50 MHz clock input
     input  wire i_reset,
@@ -12,7 +8,7 @@ module clk_divider #(
     reg [31:0] counter;
 
     always @(posedge i_clk or posedge i_reset) begin
-        if (i_reset) begin
+        if (i_reset) begin  // Sửa lại thành i_reset thay vì ~i_reset
             counter <= 0;
             o_clk   <= 0;
         end else begin

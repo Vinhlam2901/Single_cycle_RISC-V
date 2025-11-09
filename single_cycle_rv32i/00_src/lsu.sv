@@ -231,10 +231,10 @@ module lsu (
     end else if (i_lsu_wren && is_hex03) begin
           case (bmask_align)
             4'b0000: begin
-              hex0_next = 7'b0;
-              hex1_next = 7'b0;
-              hex2_next = 7'b0;
-              hex3_next = 7'b0;
+              hex0_next = 7'b1111111;
+              hex1_next = 7'b1111111;
+              hex2_next = 7'b1111111;
+              hex3_next = 7'b1111111;
             end
             4'b0001: hex0_next = st_wdata[6:0];
             4'b0010: hex1_next = st_wdata[6:0];
@@ -259,19 +259,49 @@ module lsu (
               hex3_next = st_wdata[30:24];
             end
             default: begin
-              hex0_next = 7'b0;
-              hex1_next = 7'b0;
-              hex2_next = 7'b0;
-              hex3_next = 7'b0;
+              hex0_next = 7'b1111111;
+              hex1_next = 7'b1111111;
+              hex2_next = 7'b1111111;
+              hex3_next = 7'b1111111;
             end
           endcase
-      end else if (is_hex47) begin
-        if(i_lsu_wren && (bmask_align == 4'b1111)) begin
-          hex4_next = st_wdata[6:0];
-          hex5_next = st_wdata[14:8];
-          hex6_next = st_wdata[22:16];
-          hex7_next = st_wdata[30:24];
-        end
+      end else if (is_hex47 && i_lsu_wren) begin
+        case (bmask_align)
+          4'b0000: begin
+            hex4_next = 7'b1111111;
+            hex5_next = 7'b1111111;
+            hex6_next = 7'b1111111;
+            hex7_next = 7'b1111111;
+          end
+          4'b0001: hex4_next = st_wdata[6:0];
+          4'b0010: hex5_next = st_wdata[6:0];
+          4'b0100: hex6_next = st_wdata[6:0];
+          4'b1000: hex7_next = st_wdata[6:0];
+          4'b0011: begin
+            hex4_next = st_wdata[6:0];
+            hex5_next = st_wdata[14:8];
+            hex6_next = 7'b0;
+            hex7_next = 7'b0;
+          end
+          4'b1100: begin
+            hex4_next = 7'b0;
+            hex5_next = 7'b0;
+            hex6_next = st_wdata[6:0];
+            hex7_next = st_wdata[14:8];
+          end
+          4'b1111: begin
+            hex4_next = st_wdata[6:0];
+            hex5_next = st_wdata[14:8];
+            hex6_next = st_wdata[22:16];
+            hex7_next = st_wdata[30:24];
+          end
+          default: begin
+            hex4_next = 7'b1111111;
+            hex5_next = 7'b1111111;
+            hex6_next = 7'b1111111;
+            hex7_next = 7'b1111111;
+          end
+        endcase
       end else if (i_lsu_wren && is_lcd) begin
         lcd_next = st_wdata;
       end else if (~i_lsu_wren && is_sw) begin
@@ -283,14 +313,14 @@ module lsu (
         o_io_ledr <= 32'b0;
         o_io_ledg <= 32'b0;
         o_io_lcd  <= 32'b0;
-        o_io_hex0 <= 7'b0;
-        o_io_hex1 <= 7'b0;
-        o_io_hex2 <= 7'b0;
-        o_io_hex3 <= 7'b0;
-        o_io_hex4 <= 7'b0;
-        o_io_hex5 <= 7'b0;
-        o_io_hex6 <= 7'b0;
-        o_io_hex7 <= 7'b0;
+        o_io_hex0 <= 7'b1111111;
+        o_io_hex1 <= 7'b1111111;
+        o_io_hex2 <= 7'b1111111;
+        o_io_hex3 <= 7'b1111111;
+        o_io_hex4 <= 7'b1111111;
+        o_io_hex5 <= 7'b1111111;
+        o_io_hex6 <= 7'b1111111;
+        o_io_hex7 <= 7'b1111111;
     end else if (i_lsu_wren) begin
         o_io_ledr <= ledr_next;
         o_io_ledg <= ledg_next;

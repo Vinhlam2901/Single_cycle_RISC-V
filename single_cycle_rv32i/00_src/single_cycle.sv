@@ -32,7 +32,7 @@ module single_cycle (
     output reg         o_insn_vld
   );
 //==================Declaration================================================================================
-  wire          clk_div;
+  // wire          i_clk;
   reg   [31:0]  inst;
   reg   [31:0]  next_pc;
   reg   [31:0]  jmp_pc;
@@ -59,7 +59,7 @@ module single_cycle (
   reg   [31:0]  mem           [0:8095];   //8kB
 
 //==================Instance=====================================================================================
-//==================CLK_DIV=====================================================================================
+//==================i_clk=====================================================================================
   clk_divider clock_divider (
                               .i_clk(i_clk),
                               .i_reset(i_reset),
@@ -67,7 +67,7 @@ module single_cycle (
                             );
 //==================PC=============================================================================================
 
-  always_ff @(posedge clk_div or negedge i_reset) begin: pc_reg
+  always_ff @(posedge i_clk or negedge i_reset) begin: pc_reg
     if (~i_reset) begin
         o_pc_debug <= 32'b0;
     end else begin
@@ -84,17 +84,10 @@ module single_cycle (
     $readmemh("../02_test/isa_4b.hex", mem);
   end
 
-  always_comb begin : inst_valid
-    o_insn_vld = 1'b1;
-    if(o_insn_vld) begin // 2KiB = 2048 bytes
-      inst = mem[o_pc_debug[31:2]];
-    end else begin
-      inst = 32'h00000013;
-    end
-  end
+  assign inst = mem[o_pc_debug[31:2]];
 //==================REGFILE========================================================================================
   regfile       regfile      (
-                              .i_clk      (clk_div     ),
+                              .i_clk      (i_clk     ),
                               .i_reset    (i_reset     ),
                               .i_rs1_addr (inst[19:15] ),
                               .i_rs2_addr (inst[24:20] ),
@@ -108,6 +101,7 @@ module single_cycle (
   control_unit  control_unit (
                               .instruction(inst      ),
                               .pc_sel     (pc_sel    ),
+                              .o_inst_valid(o_insn_vld),
                               .br_unsign  (br_unsign ),
                               .op1_sel    (op1_sel   ),
                               .op2_sel    (op2_sel   ),
@@ -183,7 +177,7 @@ module single_cycle (
   end
 
   lsu lsu (
-            .i_clk      (clk_div),
+            .i_clk      (i_clk),
             .i_reset    (i_reset),
             .i_lsu_addr (rd_data_o),
             .i_st_data  (wr_data),

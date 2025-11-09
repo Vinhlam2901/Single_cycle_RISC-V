@@ -1,6 +1,6 @@
 //===========================================================================================
 // Project         : Single Cycle of RISV - V
-// Module          : Module Shift Right Logic
+// Module          : Module Shift Right Logicsrl
 // File            : srl.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 9/9/2025
