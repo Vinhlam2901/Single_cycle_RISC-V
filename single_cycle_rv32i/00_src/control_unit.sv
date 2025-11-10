@@ -20,11 +20,11 @@ module control_unit (
   output reg          mem_wren
 );
 //===================================DECLARATION==================================================
-  wire is_add, is_sub, is_and, is_or, is_xor, is_slt, is_sltu, is_sra, is_srl, is_sll;
+  wire is_add, is_sub, is_and, is_or, is_xor, is_slt, is_sltu, is_sra, is_srl, is_sll, is_mul;
   wire is_addi, is_xori, is_ori, is_andi, is_slli, is_srli, is_srai, is_slti, is_sltiu;
   wire is_beq, is_bne, is_blt, is_bge, is_bltu, is_bgeu;
   wire [31:0] pc_addr, rs1_data, rs2_data;
-  wire [9:0] rtype;
+  wire [10:0] rtype;
   wire [8:0] itype;
   wire [4:0] iltype;
   wire [2:0] stype;
@@ -44,8 +44,10 @@ module control_unit (
     endcase
   end
 //==========================RTYPE=========================================================================
+  //is_mul
+  assign is_mul   = ~instruction[12] & ~instruction[13] & ~instruction[14] & instruction[25];
   //is_add
-  assign is_add   = ~instruction[12] & ~instruction[13] & ~instruction[14] & ~instruction[30];
+  assign is_add   = ~instruction[12] & ~instruction[13] & ~instruction[14] & ~instruction[30] & ~instruction[25];
   //is_sub
   assign is_sub   = ~instruction[12] & ~instruction[13] & ~instruction[14] & instruction[30];
   //is_sll
@@ -65,10 +67,10 @@ module control_unit (
   //is_and
   assign is_and   =  instruction[12] & instruction[13]  &  instruction[14];
   // concatenat
-  assign rtype = {is_add, is_sub, is_sll, is_slt, is_sltu, is_xor, is_srl, is_sra, is_or, is_and};
+  assign rtype = {is_add, is_sub, is_sll, is_slt, is_sltu, is_xor, is_srl, is_sra, is_or, is_and, is_mul};
 //==========================ITYPE=========================================================================
   //is_addi
-  assign is_addi  = ~instruction[12] & ~instruction[13] & ~instruction[14];
+  assign is_addi  = ~instruction[12] & ~instruction[13] & ~instruction[14] & ~instruction[25];
   //is_sll
   assign is_slli  =  instruction[12] & ~instruction[13] & ~instruction[14];
   //is_slt
@@ -112,17 +114,18 @@ module control_unit (
     mem_wren    = ( instruction[6:0] == STYPE)     ? 1'b1 : 1'b0;
     case (instruction[6:0])
       RTYPE: case (rtype)
-              10'b1000000000 : alu_opcode = 4'b0000;  // add
-              10'b0100000000 : alu_opcode = 4'b0001;  // sub
-              10'b0010000000 : alu_opcode = 4'b0010;  // sll
-              10'b0001000000 : alu_opcode = 4'b0011;  // slt
-              10'b0000100000 : alu_opcode = 4'b0100;  // sltu
-              10'b0000010000 : alu_opcode = 4'b0101;  // xor
-              10'b0000001000 : alu_opcode = 4'b0110;  // srl
-              10'b0000000100 : alu_opcode = 4'b0111;  // sra
-              10'b0000000010 : alu_opcode = 4'b1000;  // or
-              10'b0000000001 : alu_opcode = 4'b1001;  // amd
-              default        : alu_opcode = 4'b0000;
+              11'b10000000000 : alu_opcode = 4'b0000;  // add
+              11'b01000000000 : alu_opcode = 4'b0001;  // sub
+              11'b00100000000 : alu_opcode = 4'b0010;  // sll
+              11'b00010000000 : alu_opcode = 4'b0011;  // slt
+              11'b00001000000 : alu_opcode = 4'b0100;  // sltu
+              11'b00000100000 : alu_opcode = 4'b0101;  // xor
+              11'b00000010000 : alu_opcode = 4'b0110;  // srl
+              11'b00000001000 : alu_opcode = 4'b0111;  // sra
+              11'b00000000100 : alu_opcode = 4'b1000;  // or
+              11'b00000000010 : alu_opcode = 4'b1001;  // and
+              11'b00000000001 : alu_opcode = 4'b1010;  // mul
+              default         : alu_opcode = 4'b0000;
             endcase
       ITYPE: case (itype)
               9'b100000000   : begin

@@ -9,12 +9,10 @@
 module sra (
   input       [31:0] rs1_data,
   input       [31:0] rs2_data,
-  input              br_unsign,
   output wire [31:0] rd_data
 );
 //chi dich 5 bit thap nhat cua rs2_data
 //dich phai msb extend
-  wire [31:0] rd_data_unsign, rd_data_sign;
   wire [31:0] s0, s1, s2, s3;
   // dich phai voi msb = 1
   assign s0           = rs2_data[0] ? {rs1_data[31],      rs1_data[31:1] } : rs1_data;

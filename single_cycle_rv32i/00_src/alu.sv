@@ -14,7 +14,7 @@ module alu (
   output wire  [31:0] o_alu_data
   );
   wire        slt, sltu;
-  wire [31:0] rd_and, rd_or, rd_xor, rd_sra, rd_srl, rd_sll, rd_add, rd_sub, rd_slt, rd_sltu;
+  wire [31:0] rd_and, rd_or, rd_xor, rd_sra, rd_srl, rd_sll, rd_add, rd_sub, rd_slt, rd_sltu, rd_mul;
   wire        cout_add, cout_sub, rd_equals, rd_equalu;
 
   and_32bit     and_module      (
@@ -82,10 +82,13 @@ module alu (
   sra           sra_module      (
                                 .rs1_data   (i_op_a),
                                 .rs2_data   (i_op_b),
-                                .br_unsign  (br_unsign_i),
                                 .rd_data    (rd_sra)
                                 ); //SRA
-
+  multiply_extension multiply   (
+                                .i_op_a(i_op_a),
+                                .i_op_b(i_op_b),
+                                .o_mul (rd_mul)
+                                );
   assign rd_slt  = {31'b0, slt};
   assign rd_sltu = {31'b0, sltu};
   //mux
@@ -100,7 +103,7 @@ module alu (
                     .d7   (rd_sra),
                     .d8   (rd_or),
                     .d9   (rd_and),
-                    .d10  (32'b0),
+                    .d10  (rd_mul),
                     .d11  (32'b0),
                     .d12  (32'b0),
                     .d13  (32'b0),
