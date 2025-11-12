@@ -10,7 +10,7 @@ import package_param::*;
 module control_unit (
   input  wire  [31:0] instruction,
   output reg          pc_sel,
-  output reg          o_inst_valid,
+  output reg          o_inst_vld,
   output reg          br_unsign,
   output reg          op1_sel,
   output reg          op2_sel,
@@ -39,8 +39,8 @@ module control_unit (
       BTYPE,
       IJTYPE,
       U1TYPE,
-      U2TYPE: o_inst_valid = 1'b1;
-      default: o_inst_valid = 1'b0;
+      U2TYPE: o_inst_vld = 1'b1;
+      default: o_inst_vld = 1'b0;
     endcase
   end
 //==========================RTYPE=========================================================================

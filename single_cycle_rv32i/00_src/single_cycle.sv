@@ -100,8 +100,8 @@ module single_cycle (
 //==================CONTROL_UNIT=====================================================================================
   control_unit  control_unit (
                               .instruction(inst      ),
-                              .pc_sel     (pc_sel    ),
-                              .o_inst_valid(o_insn_vld),
+                              .pc_sel     (pc_sel    ),sing
+                              .o_inst_vld(o_insn_vld),
                               .br_unsign  (br_unsign ),
                               .op1_sel    (op1_sel   ),
                               .op2_sel    (op2_sel   ),
