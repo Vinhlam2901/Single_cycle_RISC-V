@@ -6,7 +6,6 @@
 // Create date     : 9/9/2025
 // Updated date    : 6/11/2025 - Finished
 //============================================================================================================
-import package_param::*;
 module lsu (
   input  wire        i_clk,
   input  wire        i_reset,

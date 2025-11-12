@@ -6,7 +6,7 @@
 // Create date     : 9/9/2025
 // Updated date    : 6/11/2025 - Finished
 //=============================================================================================================
-import package_param::*;
+// import package_param::*;z
 module single_cycle (
     input  wire        i_clk,   // FPGA 50Mhz -> chia CLK xuống 10Hz
     input  wire        i_reset,
@@ -87,7 +87,7 @@ module single_cycle (
   assign inst = mem[o_pc_debug[31:2]];
 //==================REGFILE========================================================================================
   regfile       regfile      (
-                              .i_clk      (i_clk      ),
+                              .i_clk      (i_clk       ),
                               .i_reset    (i_reset     ),
                               .i_rs1_addr (inst[19:15] ),
                               .i_rs2_addr (inst[24:20] ),
@@ -100,7 +100,7 @@ module single_cycle (
 //==================CONTROL_UNIT=====================================================================================
   control_unit  control_unit (
                               .instruction(inst      ),
-                              .pc_sel     (pc_sel    ),sing
+                              .pc_sel     (pc_sel    ),
                               .o_inst_vld(o_insn_vld),
                               .br_unsign  (br_unsign ),
                               .op1_sel    (op1_sel   ),
@@ -125,7 +125,8 @@ module single_cycle (
                               );
 //==================OPERATION_1=======================================================================================
   always_comb begin : op1_sel_branch
-    if(inst[6:0] == STYPE && op1_sel) begin
+    op1 = rs1_data;
+    if(inst[6:0] == 7'b0100011 && op1_sel) begin
       case (inst[14:12])
         3'b000: op1 = ( br_equal                         ) ? o_pc_debug : rs1_data; // beq
         3'b001: op1 = (~br_equal                         ) ? o_pc_debug : rs1_data; // bne
@@ -135,9 +136,9 @@ module single_cycle (
         3'b111: op1 = (~br_less || br_equal && br_unsign ) ? o_pc_debug : rs1_data; // bgeu
         default:op1 = op1;
       endcase
-    end else if (inst[6:0] == U1TYPE) begin
+    end else if (inst[6:0] == 7'b0110111) begin
       op1 = 32'b0;
-    end else if (inst[6:0] == U2TYPE) begin
+    end else if (inst[6:0] == 7'b0010111) begin
       op1 = o_pc_debug;
     end else begin
       op1 = (op1_sel) ? o_pc_debug : rs1_data;
@@ -157,10 +158,10 @@ module single_cycle (
   always_comb begin
     // has rs2'data if stype to store rs2'data to mem
     wr_data    = 32'b0;
-    if(inst[6:0] == STYPE || inst[6:0] == ILTYPE) begin
-      if(inst[6:0] == STYPE) begin
+    if(inst[6:0] == 7'b0100011 || inst[6:0] == 7'b0000011) begin
+      if(inst[6:0] == 7'b0100011) begin
         wr_data = rs2_data;
-      end else if (inst[6:0] == ILTYPE) begin
+      end else if (inst[6:0] == 7'b0000011) begin
         wr_data = rs1_data;
       end
       case (inst[14:12])                            // check func3
@@ -199,6 +200,8 @@ module single_cycle (
           );
 //==================WRITEBACK=========================================================================================
   always_comb begin : write_back
+    wb_data_o = 32'b0;
+    jmp_pc    = 32'b0;
     case (wb_sel)
       2'b00: begin
         wb_data_o   = ((inst[11:7]) == 5'b00000) ? 32'b0 : rd_data_o; // hardwire x0

@@ -1,7 +1,4 @@
-// parameters_pkg.sv
 package package_param;
-
-   // Định nghĩa các tham số (parameters)
    parameter RTYPE  = 7'b0110011;
    parameter ITYPE  = 7'b0010011;
    parameter IITYPE = 7'b1100111;

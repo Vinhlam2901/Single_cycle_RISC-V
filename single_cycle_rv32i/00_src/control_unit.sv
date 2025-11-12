@@ -6,7 +6,7 @@
 // Create date     : 13/9/2025
 // Updated date    : 6/11/2025 - Finished
 //=============================================================================================================
-import package_param::*;
+// import package_param::*;
 module control_unit (
   input  wire  [31:0] instruction,
   output reg          pc_sel,
@@ -32,14 +32,14 @@ module control_unit (
 //==========================RTYPE=========================================================================
   always_comb begin : inst_valid
     case(instruction[6:0])
-      RTYPE,
-      ITYPE,
-      ILTYPE,
-      STYPE,
-      BTYPE,
-      IJTYPE,
-      U1TYPE,
-      U2TYPE: o_inst_vld = 1'b1;
+      7'b0110011,
+      7'b0010011,
+      7'b0000011,
+      7'b0100011,
+      7'b1100011,
+      7'b1101111,
+      7'b0110111,
+      7'b0010111: o_inst_vld = 1'b1;
       default: o_inst_vld = 1'b0;
     endcase
   end
@@ -49,7 +49,7 @@ module control_unit (
   //is_add
   assign is_add   = ~instruction[12] & ~instruction[13] & ~instruction[14] & ~instruction[30] & ~instruction[25];
   //is_sub
-  assign is_sub   = ~instruction[12] & ~instruction[13] & ~instruction[14] & instruction[30];
+  assign is_sub   = ~instruction[12] & ~instruction[13] & ~instruction[14] &  instruction[30] & ~instruction[25];
   //is_sll
   assign is_sll   =  instruction[12] & ~instruction[13] & ~instruction[14];
   //is_slt
@@ -91,17 +91,17 @@ module control_unit (
   assign itype = {is_addi, is_slli, is_slti, is_sltiu, is_xori, is_srli, is_srai, is_ori, is_andi};
 //==========================BTYPE=========================================================================
   //is_beq
-  assign is_beq  = ~instruction[12]  & ~instruction[13] & ~instruction[14];
+  assign is_beq  = ~instruction[12] & ~instruction[13] & ~instruction[14] & ~instruction[25];
   //is_bne
-  assign is_bne  =  instruction[12]  & ~instruction[13] & ~instruction[14];
+  assign is_bne  =  instruction[12] & ~instruction[13] & ~instruction[14];
    //is_blt
-  assign is_blt  = ~instruction[12]  & ~instruction[13] &  instruction[14];
+  assign is_blt  = ~instruction[12] & ~instruction[13] &  instruction[14];
   //is_bge
-  assign is_bge  =  instruction[12]  & ~instruction[13] &  instruction[14];
+  assign is_bge  =  instruction[12] & ~instruction[13] &  instruction[14];
   //is_bltu
-  assign is_bltu = ~instruction[12]  & instruction[13]  &  instruction[14];
+  assign is_bltu = ~instruction[12] & instruction[13]  &  instruction[14];
   //is_bgeu
-  assign is_bgeu =  instruction[12]  & instruction[13]  &  instruction[14];
+  assign is_bgeu =  instruction[12] & instruction[13]  &  instruction[14];
   // concat
   assign btype = {is_beq, is_bne, is_blt, is_bge, is_bltu, is_bgeu};
 //==========================ALU_OPCODE=========================================================================
@@ -109,11 +109,11 @@ module control_unit (
     br_unsign   = 1'b1;
     wb_sel      = 2'b00;
     pc_sel      = 1'b0;
-    rd_wren     = ( instruction[6:0] == STYPE  ||
-                    instruction[6:0] == BTYPE   )  ? 1'b0 : 1'b1;
-    mem_wren    = ( instruction[6:0] == STYPE)     ? 1'b1 : 1'b0;
+    rd_wren     = ( instruction[6:0] == 7'b0100011  ||
+                    instruction[6:0] == 7'b1100011   )  ? 1'b0 : 1'b1;
+    mem_wren    = ( instruction[6:0] == 7'b0100011)     ? 1'b1 : 1'b0;
     case (instruction[6:0])
-      RTYPE: case (rtype)
+      7'b0110011: case (rtype)
               11'b10000000000 : alu_opcode = 4'b0000;  // add
               11'b01000000000 : alu_opcode = 4'b0001;  // sub
               11'b00100000000 : alu_opcode = 4'b0010;  // sll
@@ -127,7 +127,7 @@ module control_unit (
               11'b00000000001 : alu_opcode = 4'b1010;  // mul
               default         : alu_opcode = 4'b0000;
             endcase
-      ITYPE: case (itype)
+      7'b0010011: case (itype)
               9'b100000000   : begin
                 alu_opcode = 4'b0000;   // addi
                 br_unsign  = 1'b0;
@@ -145,9 +145,9 @@ module control_unit (
               9'b000000001   : alu_opcode = 4'b1001;   // andi
               default        : alu_opcode = 4'b0000;
             endcase
-      ILTYPE,
-      STYPE:                  alu_opcode = 4'b0000;    // alu using add
-      BTYPE: case (btype)
+      7'b0000011,
+      7'b0100011:              alu_opcode = 4'b0000;    // alu using add
+      7'b1100011: case (btype)
               6'b100000  : begin                       // beq
                 alu_opcode = 4'b0000;
                 br_unsign = 1'b0;
@@ -174,58 +174,58 @@ module control_unit (
                 end
               default  : alu_opcode = 4'b0000;
             endcase
-      IJTYPE:            alu_opcode = 4'b0000;
-      IITYPE:            alu_opcode = 4'b0000;
-      U1TYPE:            alu_opcode = 4'b0000;         // lui using imm + 0
-      U2TYPE:            alu_opcode = 4'b0000;         // auipc using pc + imm
-      default:           alu_opcode = 4'b0000;
+      7'b1101111:            alu_opcode = 4'b0000;
+      7'b1100111:            alu_opcode = 4'b0000;
+      7'b0110111:            alu_opcode = 4'b0000;         // lui using imm + 0
+      7'b0010111:            alu_opcode = 4'b0000;         // auipc using pc + imm
+      default:               alu_opcode = 4'b0000;
     endcase
 //==================================WRITE_BACK===============================================
   case (instruction[6:0])
-    RTYPE: begin                     // opcode rd, r1, r2
+    7'b0110011: begin                     // opcode rd, r1, r2
       wb_sel   = 2'b00; // rd
       pc_sel   = 1'b0;  // pc + 4
       op1_sel  = 1'b0;  //rs1
       op2_sel  = 1'b0;  //rs2;
     end
-    ITYPE: begin
+    7'b0010011: begin
       wb_sel   = 2'b00; // rd
       pc_sel   = 1'b0;  // pc + 4
       op1_sel  = 1'b0;  // rs1
       op2_sel  = 1'b1;  // imm
     end
-    ILTYPE: begin
+    7'b0000011: begin
       wb_sel   = 2'b11; // read_data
       pc_sel   = 1'b0;  // pc + 4
       op1_sel  = 1'b0;  // rs1
       op2_sel  = 1'b1;  // imm_ex;
     end
-    BTYPE: begin
+    7'b1100011: begin
       wb_sel   = 2'b01;   //jmp_pc
       pc_sel   = 1'b1;    // jmp_pc
       op1_sel  = 1'b1;    // pc
       op2_sel  = 1'b1;    // imm
     end
-    STYPE: begin
+    7'b0100011: begin
       op1_sel  = 1'b0; // rs1
       op2_sel  = 1'b1; // imm
       pc_sel   = 1'b0; // pc + 4
       mem_wren = 1'b1;
     end
-    IJTYPE: begin
+    7'b1101111: begin
       wb_sel  = 2'b10; // rd = pc +4
       pc_sel  = 1'b1;  // jmp_pc
       op1_sel = 1'b1;  // pc
       op2_sel = 1'b1;  // imm
     end
-    IITYPE: begin
+    7'b1100111: begin
       wb_sel  = 2'b10; // pc = rs1 + imm
       pc_sel  = 1'b1;  // jmp_pc
       op1_sel = 1'b0;  // rs1
       op2_sel = 1'b1;  // imm
     end
-    U1TYPE,
-    U2TYPE: begin
+    7'b0110111,
+    7'b0010111: begin
       wb_sel  = 2'b00; // rd
       pc_sel  = 1'b0;  // pc + 4
       op1_sel = 1'b0;
