@@ -87,7 +87,7 @@ module single_cycle (
   assign inst = mem[o_pc_debug[31:2]];
 //==================REGFILE========================================================================================
   regfile       regfile      (
-                              .i_clk      (i_clk     ),
+                              .i_clk      (i_clk      ),
                               .i_reset    (i_reset     ),
                               .i_rs1_addr (inst[19:15] ),
                               .i_rs2_addr (inst[24:20] ),
