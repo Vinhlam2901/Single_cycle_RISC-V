@@ -59,14 +59,7 @@ module single_cycle (
   reg   [31:0]  mem           [0:8095];   //8kB
 
 //==================Instance=====================================================================================
-//==================i_clk=====================================================================================
-  // clk_divider clock_divider (
-  //                             .i_clk(i_clk),
-  //                             .i_reset(i_reset),
-  //                             .o_clk(clk_div)
-  //                           );
 //==================PC=============================================================================================
-
   always_ff @(posedge i_clk or negedge i_reset) begin: pc_reg
     if (~i_reset) begin
         o_pc_debug <= 32'b0;
@@ -78,6 +71,7 @@ module single_cycle (
                   .pc_reg(o_pc_debug),
                   .pc_o(pc_plus4)
                  );
+
   assign next_pc = (pc_sel) ? jmp_pc : pc_plus4;
 //==================IMEM=========================================================================================
   initial begin : instruction

@@ -17,7 +17,7 @@ module immgen (
     case (inst_i[6:0])
       //Itype msb extend when func3 == 0, 2, 4, 5, 6, 7,
       7'b1100111,
-      7'b0010011  : is_msb = (inst_i[14] | ~inst_i[12]);
+      7'b0010011  : is_msb = (~inst_i[12]) | (inst_i[14] & inst_i[13]);
       default: is_msb = 1'b0;
     endcase
   end
@@ -25,10 +25,10 @@ module immgen (
     case (inst_i[6:0])
       7'b1100111,
       7'b0000011,
-      7'b0010011  : imm_o = (is_msb) ? {{20{inst_i[31]}}, inst_i[31:20]              }:
-                                  {{20{1'b0      }}, inst_i[31:20]              };
-      7'b0100011  : imm_o =            {{20{1'b0      }}, inst_i[31:25], inst_i[11:7]};
-      7'b1100011  : imm_o =            {{20{inst_i[31]}}, inst_i[31]   , inst_i[7], inst_i[30:25], inst_i[11:8], 1'b0};
+      7'b0010011 : imm_o = (is_msb) ? {{20{inst_i[31]}}, inst_i[31:20]              }:
+                                      {{20{1'b0      }}, inst_i[31:20]              };
+      7'b0100011 : imm_o =            {{20{inst_i[31]}}, inst_i[31:25], inst_i[11:7]};
+      7'b1100011 : imm_o =            {{20{inst_i[31]}}, inst_i[31]   , inst_i[7], inst_i[30:25], inst_i[11:8], 1'b0};
       7'b1101111 : imm_o =            {{20{inst_i[31]}}, inst_i[31]   , inst_i[19:12], inst_i[20], inst_i[30:21], 1'b0};
       7'b0110111,
       7'b0010111 : imm_o =            {inst_i[31:12]   , {12{1'b0}}};
