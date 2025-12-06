@@ -13,6 +13,7 @@ module lsu (
   input  wire [31:0] i_lsu_addr,
   input  wire [31:0] i_st_data,
   input  wire        i_lsu_wren,
+  input  wire        i_lsu_rden,
   input  wire [2:0]  i_func3,
 
   input  wire [31:0] i_io_sw,
@@ -50,6 +51,7 @@ module lsu (
   wire [15:0] dmem_ptr;
 
   reg         mem_wren;
+  reg         mem_rden;
 
   reg         is_sbyte;
   reg         is_ubyte;
@@ -187,6 +189,7 @@ module lsu (
                 .i_bmask_align(bmask_align      ),
                 .i_bmask_misalign(bmask_misalign),
                 .i_wren (mem_wren               ),
+                .i_rden (mem_rden               ),
                 .o_rdata(dmem                   )
               );
 
@@ -303,7 +306,7 @@ module lsu (
         endcase
       end else if (i_lsu_wren && is_lcd) begin
         lcd_next = st_wdata;
-      end else if (~i_lsu_wren && is_sw) begin
+      end else if (~i_lsu_wren && is_sw && i_lsu_rden) begin
         ld_data = i_io_sw;
       end
     end
@@ -335,7 +338,11 @@ module lsu (
     end
   end
 
-  always_comb begin
-    o_ld_data = ld_data;
+  always_ff @( posedge i_clk ) begin : sync_load
+    if(~i_reset) begin
+      o_ld_data <= 32'b0;
+    end else if (i_lsu_rden) begin
+      o_ld_data <= ld_data;
+    end
   end
 endmodule

@@ -4,7 +4,7 @@
 // File            : memory.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 21/10/2025
-// Updated date    : 6/11/2025 - Finished
+// Updated date    : 5/12/2025
 //=============================================================================================================
 module memory (
  input  wire         i_clk,
@@ -15,6 +15,7 @@ module memory (
  input  wire  [3:0]  i_bmask_align,
  input  wire  [3:0]  i_bmask_misalign,
  input  wire         i_wren,
+ input  wire         i_rden,
  output reg [31:0] o_rdata
 );
   integer  i;
@@ -25,33 +26,14 @@ module memory (
   reg  [31:0] mem_ld_misalign;
   wire [31:0] mem_addr;
   wire [31:0] mem_addr_plus1;
+  reg  [2:0 ] r_func3;
+  reg  [1:0 ] r_addr_lsb;
   reg         is_sbyte;
   reg         is_ubyte;
   reg         is_shb;
   reg         is_uhb;
   reg         is_word;
 
-  always_comb begin
-    is_ubyte = 1'b0;
-    is_sbyte = 1'b0;
-    is_uhb   = 1'b0;
-    is_shb   = 1'b0;
-    is_word  = 1'b0;
-    case (i_func3)
-      3'b000: is_sbyte = 1'b1;
-      3'b001: is_shb   = 1'b1;
-      3'b010: is_word  = 1'b1;
-      3'b100: is_ubyte = 1'b1;
-      3'b101: is_uhb   = 1'b1;
-      default: begin
-              is_ubyte = 1'b0;
-              is_sbyte = 1'b0;
-              is_uhb   = 1'b0;
-              is_shb   = 1'b0;
-              is_word  = 1'b0;
-              end
-    endcase
-  end
   assign mem_addr = {23'b0 , i_addr[10:2]};
 
   full_adder_32bit fa (
@@ -61,9 +43,6 @@ module memory (
     .Sum_o(mem_addr_plus1),
     .c_o(                )
   );
-
-  assign mem_ld_align    = mem[mem_addr];
-  assign mem_ld_misalign = mem[mem_addr_plus1];
 
   always_comb begin
     case (i_bmask_align)
@@ -83,6 +62,36 @@ module memory (
       4'b0011: mem_st_misalign = {16'b0, i_wdata[31:16]};
       4'b0111: mem_st_misalign = {8'b0 , i_wdata[31:8]};
       default: mem_st_misalign = 32'b0;
+    endcase
+  end
+  always_ff @(posedge i_clk) begin : mem_read_sync
+    if (i_rden) begin
+        mem_ld_align    <= mem[mem_addr];
+        mem_ld_misalign <= mem[mem_addr_plus1];
+        r_func3         <= i_func3;
+        r_addr_lsb      <= i_addr[1:0];
+    end
+  end
+
+  always_comb begin
+    is_ubyte = 1'b0;
+    is_sbyte = 1'b0;
+    is_uhb   = 1'b0;
+    is_shb   = 1'b0;
+    is_word  = 1'b0;
+    case (r_func3)
+      3'b000: is_sbyte = 1'b1;
+      3'b001: is_shb   = 1'b1;
+      3'b010: is_word  = 1'b1;
+      3'b100: is_ubyte = 1'b1;
+      3'b101: is_uhb   = 1'b1;
+      default: begin
+              is_ubyte = 1'b0;
+              is_sbyte = 1'b0;
+              is_uhb   = 1'b0;
+              is_shb   = 1'b0;
+              is_word  = 1'b0;
+              end
     endcase
   end
 
@@ -111,7 +120,7 @@ module memory (
   always_comb begin : mem_load
     o_rdata = 32'b0;
     if(is_word) begin
-      case(i_addr[1:0])
+      case(r_addr_lsb)
         2'b00:   o_rdata =                         mem_ld_align;
         2'b01:   o_rdata = {mem_ld_misalign[ 7:0], mem_ld_align[31:8 ]};
         2'b10:   o_rdata = {mem_ld_misalign[15:0], mem_ld_align[31:16]};
@@ -121,7 +130,7 @@ module memory (
     end
 
     if(is_shb) begin
-      case(i_addr[1:0])
+      case(r_addr_lsb)
         2'b00:   o_rdata = {{16{mem_ld_align[15]}}  ,                       mem_ld_align[15:0 ]};
         2'b01:   o_rdata = {{16{mem_ld_align[23]}}  ,                       mem_ld_align[23:8 ]};
         2'b10:   o_rdata = {{16{mem_ld_align[31]}}  ,                       mem_ld_align[31:16]};
@@ -130,7 +139,7 @@ module memory (
       endcase
     end
     if(is_uhb) begin
-      case(i_addr[1:0])
+      case(r_addr_lsb)
         2'b00:   o_rdata = {16'b0,                       mem_ld_align[15:0 ]};
         2'b01:   o_rdata = {16'b0,                       mem_ld_align[23:8 ]};
         2'b10:   o_rdata = {16'b0,                       mem_ld_align[31:16]};
@@ -140,7 +149,7 @@ module memory (
     end
 
     if(is_sbyte) begin
-      case(i_addr[1:0])
+      case(r_addr_lsb)
         2'b00:   o_rdata = {{24{mem_ld_align[7]}} , mem_ld_align[ 7:0 ]};
         2'b01:   o_rdata = {{24{mem_ld_align[15]}}, mem_ld_align[15:8 ]};
         2'b10:   o_rdata = {{24{mem_ld_align[23]}}, mem_ld_align[23:16]};
@@ -151,7 +160,7 @@ module memory (
 
 
     if(is_ubyte) begin
-      case(i_addr[1:0])
+      case(r_addr_lsb)
         2'b00:   o_rdata = {24'b0, mem_ld_align[ 7:0 ]};
         2'b01:   o_rdata = {24'b0, mem_ld_align[15:8 ]};
         2'b10:   o_rdata = {24'b0, mem_ld_align[23:16]};

@@ -26,36 +26,83 @@ package package_param;
   typedef logic [4:0]  addr_t;
 
   typedef struct packed {
-    word_t      pc;
-    word_t      inst;
+    word_t  pc;
+    word_t  inst;
   } if_id_reg_t;
 
   typedef struct packed {
-    word_t      pc;
-    word_t      inst;
-    word_t      rs1_data;
-    word_t      rs2_data;
-    word_t      imm_ext;
+    word_t  pc;
+    word_t  inst;
+    word_t  rs1_data;
+    word_t  rs2_data;
+    word_t  imm_ext;
 
-    addr_t      rs1_addr;
-    addr_t      rs2_addr;
-    addr_t      rd_addr;
+    addr_t  rs1_addr;
+    addr_t  rs2_addr;
+    addr_t  rd_addr;
+
+    logic   alu_opcode;
+    logic   br_unsign;
+    logic   op1_sel;
+    logic   op2_sel;    // alu_src
+    logic   mem_wren;
+    logic   mem_rden;
+    logic   branch_signal;
+    logic   jmp_signal;
+    logic   rd_wren;
+    logic   mem_to_reg;
   } id_ex_reg_t;
 
   typedef struct packed {
-    word_t      pc;
-    word_t      inst;
-    word_t      alu_result;
-    word_t      rs2_data;
+    word_t  pc;
+    word_t  inst;
+    word_t  alu_result;
+    word_t  rs2_data;
 
-    addr_t      rd_addr;
+    addr_t  rd_addr;
+
+    logic   mem_wren;
+    logic   mem_rden;
+    logic   branch_signal;
+    logic   jmp_signal;
+
+    logic   rd_wren;
+    logic   mem_to_reg;
   } ex_mem_reg_t;
 
   typedef struct packed {
-    word_t      pc4;
-    word_t      alu_result;
-    word_t      rs2_data;    // Dữ liệu để ghi vào Mem (Store)
-    word_t      inst;
-    word_t      read_data;
+    word_t  pc4;
+    word_t  alu_result;
+    word_t  rs2_data;
+    word_t  inst;
+    word_t  read_data;
+
+    addr_t  rd_addr;
+
+    logic   rd_wren;
+    logic   mem_to_reg;
   } mem_wb_reg_t;
 endpackage
+
+/*
+Trong module top-level, tại giai đoạn EX
+  1. Lấy cờ Zero từ ALU (hoặc bộ so sánh)
+  Hoặc dùng module brcomp của bạn trả về br_equal / br_less
+  2. Tính toán PC Src (Logic tổ hợp)
+  Lệnh là Branch VÀ Thỏa mãn điều kiện (Zero/Equal)
+  wire branch_taken = id_ex_reg.branch && br_equal; 
+  Có phải nhảy không? (Branch Taken HOẶC Jump Unconditional)
+  assign o_pc_src = branch_taken || id_ex_reg.jump;
+  3. Tính địa chỉ đích (Target Address)
+  Thường là PC + Imm (đã tính ở ID hoặc tính tại EX bằng Adder riêng)
+  assign branch_target_addr = id_ex_reg.pc + id_ex_reg.imm_ext;
+  4. Xử lý Flush (Nếu o_pc_src == 1)
+  always_comb begin
+      if (o_pc_src) begin
+          flush_en = 1'b1;      // Xóa lệnh đang ở IF và ID
+          next_pc_mux = branch_target_addr; // Cập nhật PC
+      end else begin
+          ...
+      end
+  end
+*/

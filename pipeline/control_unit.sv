@@ -8,17 +8,18 @@
 //=============================================================================================================
 import package_param::*;
 module control_unit (
-  input  wire         i_clk,
-  input  wire         i_reset,
   input  wire  [31:0] instruction,
-  output reg          pc_sel,
   output reg          o_inst_vld,
+  output reg          o_ctrl,
   output reg          br_unsign,
   output reg          op1_sel,
   output reg          op2_sel,
-  output reg  [3:0]   alu_opcode_ex,
+  output reg          branch_signal,
+  output reg          jmp_signal,
+  output reg          mem_to_reg,
+  output reg  [3:0]   alu_opcode,
+  output reg          mem_rden,
   output reg          rd_wren,
-  output reg  [1:0]   wb_sel,
   output reg          mem_wren
 );
 //===================================DECLARATION==================================================
@@ -31,202 +32,25 @@ module control_unit (
   wire [4:0] iltype;
   wire [2:0] stype;
   wire [5:0] btype;
-  reg [3:0] alu_opcode_id;
-  typedef enum logic [2:0] {
-    IF  = 3'b000,
-    ID  = 3'b001,
-    EX  = 3'b010,
-    MEM = 3'b011,
-    WB  = 3'b100
-  } state_t;
-
-  state_t current_phase, next_phase;
-
-//====================================STATE MACHINE===============================================
-always_ff @(posedge i_clk) begin
-  if (~i_reset) begin
-    current_phase <= IF;
-  end else begin
-    current_phase <= next_phase;
-  end
-end
-
-//==================================STATE TRANSITIONS============================================
-always_comb begin
-  case (current_phase)
-    IF:      next_phase = ID;
-    ID:      next_phase = EX;
-    EX:      next_phase = MEM;
-    MEM:     next_phase = WB;
-    WB:      next_phase = IF;
-    default: next_phase = IF;
-  endcase
-end
-
-//==================================CONTROL SIGNALS BASED ON STATE=============================
-always_ff @(posedge i_clk) begin
-  if (~i_reset) begin
-    alu_opcode_ex <= 4'b0000;
-    pc_sel        <= 1'b0;
-    rd_wren <= 1'b1;
-    op1_sel <= 1'b0;  //rs1
-    op2_sel <= 1'b0;  //rs2;
-    wb_sel   <= 2'b00;
-  end else begin
-    case (current_phase)
-      IF: begin       // control pc_sel
-        pc_sel        <= 1'b0;
-        alu_opcode_ex <= 4'b0000;
-        wb_sel   <= 2'b00;
-      end
-      ID: begin       // control reg_wren
-        pc_sel        <= 1'b0;
-        wb_sel   <= 2'b00;
-        case (alu_opcode_id)
-          4'b0000: alu_opcode_ex <= 4'b0000;
-          4'b0001: alu_opcode_ex <= 4'b0001;
-          4'b0010: alu_opcode_ex <= 4'b0010;
-          4'b0011: alu_opcode_ex <= 4'b0011;
-          4'b0100: alu_opcode_ex <= 4'b0100;
-          4'b0101: alu_opcode_ex <= 4'b0101;
-          4'b0110: alu_opcode_ex <= 4'b0110;
-          4'b0111: alu_opcode_ex <= 4'b0111;
-          4'b1000: alu_opcode_ex <= 4'b1000;
-          4'b1001: alu_opcode_ex <= 4'b1001;
-          default: alu_opcode_ex <= 4'b0000;
-        endcase
-
-      case (instruction[6:0])
-        RTYPE: begin                     // opcode rd, r1, r2
-          op1_sel <= 1'b0;  //rs1
-          op2_sel <= 1'b0;  //rs2;
-        end
-        ITYPE: begin
-          op1_sel <= 1'b0;  // rs1
-          op2_sel <= 1'b1;  // imm
-        end
-        ILTYPE: begin
-          op1_sel <= 1'b0;  // rs1
-          op2_sel <= 1'b1;  // imm_ex;
-        end
-        BTYPE: begin
-          op1_sel <= 1'b1;    // pc
-          op2_sel <= 1'b1;    // imm
-        end
-        STYPE: begin
-          op1_sel <= 1'b0; // rs1
-          op2_sel <= 1'b1; // imm
-        end
-        IJTYPE: begin
-          op1_sel <= 1'b1;  // pc
-          op2_sel <= 1'b1;  // imm
-        end
-        IITYPE: begin
-          op1_sel <= 1'b0;  // rs1
-          op2_sel <= 1'b1;  // imm
-        end
-        U1TYPE,
-        U2TYPE: begin
-          op1_sel <= 1'b0;
-          op2_sel <= 1'b1;  // imm
-        end
-        default: begin
-          op1_sel <= 1'b0; // rs1_data
-          op2_sel <= 1'b0; // rs2_data
-        end
-      endcase
-      end
-      EX: begin       // control alu_src, alu_op, alu_control, zero (for no branch predict)
-        pc_sel        <= 1'b0;
-        wb_sel   <= 2'b00;
-        case (alu_opcode_id)
-          4'b0000: alu_opcode_ex <= 4'b0000;
-          4'b0001: alu_opcode_ex <= 4'b0001;
-          4'b0010: alu_opcode_ex <= 4'b0010;
-          4'b0011: alu_opcode_ex <= 4'b0011;
-          4'b0100: alu_opcode_ex <= 4'b0100;
-          4'b0101: alu_opcode_ex <= 4'b0101;
-          4'b0110: alu_opcode_ex <= 4'b0110;
-          4'b0111: alu_opcode_ex <= 4'b0111;
-          4'b1000: alu_opcode_ex <= 4'b1000;
-          4'b1001: alu_opcode_ex <= 4'b1001;
-          default: alu_opcode_ex <= 4'b0000;
-        endcase
-      end
-      MEM: begin      // brach predict, mem_wren, mem_read
-        alu_opcode_ex <= 4'b0000;
-        pc_sel        <= 1'b0;
-        wb_sel   <= 2'b00;
-      end
-      WB: begin       // contrl MemToReg
-        alu_opcode_ex <= 4'b0000;
-        case (instruction[`OPCODE])
-          RTYPE: begin                     // opcode rd, r1, r2
-            rd_wren <= 1'b1;
-            wb_sel   <= 2'b00; // rd
-            pc_sel <= 1'b0;  // pc + 4
-          end
-          ITYPE: begin
-            rd_wren <= 1'b1;
-            wb_sel   <= 2'b00; // rd
-            pc_sel <= 1'b0;  // pc + 4
-          end
-          ILTYPE: begin
-            rd_wren <= 1'b1;
-            wb_sel   <= 2'b11; // read_data
-            pc_sel <= 1'b0;  // pc + 4
-          end
-          BTYPE: begin
-            wb_sel   <= 2'b01;   //jmp_pc
-            rd_wren <= 1'b0;
-            pc_sel <= 1'b1;    // jmp_pc
-          end
-          STYPE: begin
-            pc_sel <= 1'b0; // pc + 4
-            rd_wren <= 1'b0;
-          end
-          IJTYPE: begin
-            rd_wren <= 1'b1;
-            wb_sel  <= 2'b10; // pc = rs1 + imm
-            pc_sel <= 1'b1;  // jmp_pc
-          end
-          IITYPE: begin
-            rd_wren <= 1'b1;
-            wb_sel  <= 2'b10; // pc = rs1 + imm
-            pc_sel <= 1'b1;  // jmp_pc
-          end
-          U1TYPE,
-          U2TYPE: begin
-            rd_wren <= 1'b1;
-            wb_sel   <= 2'b00; // rd
-            pc_sel <= 1'b0;  // pc + 4
-          end
-          default: begin
-            wb_sel   <= 2'b00; // rd
-            rd_wren <= 1'b1;
-            pc_sel <= 1'b0;
-          end
-        endcase
-      end
-      default: begin
-
-      end
-    endcase
-  end
-end
 
 //==========================RTYPE=========================================================================
   always_comb begin : inst_valid
-    case(instruction[6:0])
+    case(instruction[`OPCODE])
       RTYPE,
       ITYPE,
       ILTYPE,
-      STYPE,
+      STYPE: o_inst_vld = 1'b1;
       BTYPE,
-      IJTYPE,
+      IJTYPE: begin
+        o_inst_vld = 1'b1;
+        o_ctrl     = 1'b1;
+      end
       U1TYPE,
       U2TYPE: o_inst_vld = 1'b1;
-      default: o_inst_vld = 1'b0;
+      default: begin
+        o_inst_vld = 1'b0;
+        o_ctrl = 1'b0;
+      end
     endcase
   end
 //==========================RTYPE=========================================================================
@@ -290,137 +114,179 @@ end
   assign is_bgeu =  instruction[12] & instruction[13]  &  instruction[14];
   // concat
   assign btype = {is_beq, is_bne, is_blt, is_bge, is_bltu, is_bgeu};
-//==========================ALU_OPCODE_id=========================================================================
+//==========================alu_opcode=========================================================================
   always_comb begin : signal_sel
     br_unsign   = 1'b1;
-    // wb_sel      = 2'b00;
-    // rd_wren     = ( instruction[6:0] == STYPE  ||
-    //                 instruction[6:0] == BTYPE   )  ? 1'b0 : 1'b1;
-    mem_wren    = ( instruction[6:0] == STYPE)     ? 1'b1 : 1'b0;
-    case (instruction[6:0])
+    mem_to_reg  = 2'b00;
+    case (instruction[`OPCODE])
       RTYPE: case (rtype)
-              11'b10000000000 : alu_opcode_id = 4'b0000;  // add
-              11'b01000000000 : alu_opcode_id = 4'b0001;  // sub
-              11'b00100000000 : alu_opcode_id = 4'b0010;  // sll
-              11'b00010000000 : alu_opcode_id = 4'b0011;  // slt
-              11'b00001000000 : alu_opcode_id = 4'b0100;  // sltu
-              11'b00000100000 : alu_opcode_id = 4'b0101;  // xor
-              11'b00000010000 : alu_opcode_id = 4'b0110;  // srl
-              11'b00000001000 : alu_opcode_id = 4'b0111;  // sra
-              11'b00000000100 : alu_opcode_id = 4'b1000;  // or
-              11'b00000000010 : alu_opcode_id = 4'b1001;  // and
-              11'b00000000001 : alu_opcode_id = 4'b1010;  // mul
-              default         : alu_opcode_id = 4'b0000;
+              11'b10000000000 : alu_opcode = 4'b0000;  // add
+              11'b01000000000 : alu_opcode = 4'b0001;  // sub
+              11'b00100000000 : alu_opcode = 4'b0010;  // sll
+              11'b00010000000 : alu_opcode = 4'b0011;  // slt
+              11'b00001000000 : alu_opcode = 4'b0100;  // sltu
+              11'b00000100000 : alu_opcode = 4'b0101;  // xor
+              11'b00000010000 : alu_opcode = 4'b0110;  // srl
+              11'b00000001000 : alu_opcode = 4'b0111;  // sra
+              11'b00000000100 : alu_opcode = 4'b1000;  // or
+              11'b00000000010 : alu_opcode = 4'b1001;  // and
+              11'b00000000001 : alu_opcode = 4'b1010;  // mul
+              default         : alu_opcode = 4'b0000;
             endcase
       ITYPE: case (itype)
               9'b100000000   : begin
-                alu_opcode_id = 4'b0000;   // addi
+                alu_opcode = 4'b0000;   // addi
                 br_unsign  = 1'b0;
               end
-              9'b010000000   : alu_opcode_id = 4'b0010;  // slli
-              9'b001000000   : alu_opcode_id = 4'b0011;  // slti
-              9'b000100000   : alu_opcode_id = 4'b0100;  // sltiu
-              9'b000010000   : alu_opcode_id = 4'b0101;  // xori
-              9'b000001000   : alu_opcode_id = 4'b0110;  // srli
+              9'b010000000   : alu_opcode = 4'b0010;  // slli
+              9'b001000000   : alu_opcode = 4'b0011;  // slti
+              9'b000100000   : alu_opcode = 4'b0100;  // sltiu
+              9'b000010000   : alu_opcode = 4'b0101;  // xori
+              9'b000001000   : alu_opcode = 4'b0110;  // srli
               9'b000000100   : begin
-                alu_opcode_id = 4'b0111;                 // is_srai
+                alu_opcode = 4'b0111;                 // is_srai
                 br_unsign  = 1'b0;
               end
-              9'b000000010   : alu_opcode_id = 4'b1000;   // ori
-              9'b000000001   : alu_opcode_id = 4'b1001;   // andi
-              default        : alu_opcode_id = 4'b0000;
+              9'b000000010   : alu_opcode = 4'b1000;   // ori
+              9'b000000001   : alu_opcode = 4'b1001;   // andi
+              default        : alu_opcode = 4'b0000;
             endcase
       ILTYPE,
-      STYPE:              alu_opcode_id = 4'b0000;    // alu using add
+      STYPE:              alu_opcode = 4'b0000;    // alu using add
       BTYPE: case (btype)
               6'b100000  : begin                       // beq
-                alu_opcode_id = 4'b0000;
+                alu_opcode = 4'b0000;
                 br_unsign = 1'b0;
                 end
               6'b010000 : begin                        // bne
-                alu_opcode_id = 4'b0000;
+                alu_opcode = 4'b0000;
                 br_unsign = 1'b0;
                 end
               6'b001000 : begin                        // blt
-                alu_opcode_id = 4'b0000;
+                alu_opcode = 4'b0000;
                 br_unsign = 1'b0;
                 end
               6'b000100: begin                         // bge
-                alu_opcode_id = 4'b0000;
+                alu_opcode = 4'b0000;
                 br_unsign = 1'b0;
                 end
               6'b000010: begin
-                alu_opcode_id = 4'b0000;         // bltu
+                alu_opcode = 4'b0000;         // bltu
                 br_unsign  = 1'b1;
                 end
               6'b000001: begin
-                alu_opcode_id = 4'b0000;
+                alu_opcode = 4'b0000;
                 br_unsign  = 1'b1;
                 end
-              default  : alu_opcode_id = 4'b0000;
+              default  : alu_opcode = 4'b0000;
             endcase
-      IJTYPE:            alu_opcode_id = 4'b0000;
-      IITYPE:            alu_opcode_id = 4'b0000;
-      U1TYPE:            alu_opcode_id = 4'b0000;         // lui using imm + 0
-      U2TYPE:            alu_opcode_id = 4'b0000;         // auipc using pc + imm
-      default:           alu_opcode_id = 4'b0000;
+      IJTYPE:            alu_opcode = 4'b0000;
+      IITYPE:            alu_opcode = 4'b0000;
+      U1TYPE:            alu_opcode = 4'b0000;         // lui using imm + 0
+      U2TYPE:            alu_opcode = 4'b0000;         // auipc using pc + imm
+      default:           alu_opcode = 4'b0000;
     endcase
 //==================================WRITE_BACK===============================================
-  case (instruction[6:0])
+  case (instruction[`OPCODE])
     RTYPE: begin                     // opcode rd, r1, r2
-      // wb_sel   = 2'b00; // rd
-      // pc_sel   = 1'b0;  // pc + 4
-      // op1_sel  = 1'b0;  //rs1
-      // op2_sel  = 1'b0;  //rs2;
+      mem_to_reg    = 1'b0;  // alu_result
+      op1_sel       = 1'b0;  //rs1
+      op2_sel       = 1'b0;  //rs2;
+      mem_wren      = 1'b0;
+      mem_rden      = 1'b0;
+      rd_wren       = 1'b1;
+      branch_signal = 1'b0;
+      jmp_signal    = 1'b0;
     end
     ITYPE: begin
-      // wb_sel   = 2'b00; // rd
-      // pc_sel   = 1'b0;  // pc + 4
-      // op1_sel  = 1'b0;  // rs1
-      // op2_sel  = 1'b1;  // imm
+      mem_to_reg    = 1'b0;  // alu_result
+      op1_sel       = 1'b0;  // rs1
+      op2_sel       = 1'b1;  // imm
+      mem_wren      = 1'b0;
+      mem_rden      = 1'b0;
+      rd_wren       = 1'b1;
+      branch_signal = 1'b0;
+      jmp_signal    = 1'b0;
     end
     ILTYPE: begin
-      // wb_sel   = 2'b11; // read_data
-      // pc_sel   = 1'b0;  // pc + 4
-      // op1_sel  = 1'b0;  // rs1
-      // op2_sel  = 1'b1;  // imm_ex;
+      mem_to_reg    = 1'b1;  // read_data
+      op1_sel       = 1'b0;  // rs1
+      op2_sel       = 1'b1;  // imm_ex;
+      mem_wren      = 1'b0;
+      mem_rden      = 1'b1;
+      rd_wren       = 1'b1;
+      branch_signal = 1'b0;
+      jmp_signal    = 1'b0;
     end
     BTYPE: begin
-      // wb_sel   = 2'b01;   //jmp_pc
-      // pc_sel   = 1'b1;    // jmp_pc
-      // op1_sel  = 1'b1;    // pc
-      // op2_sel  = 1'b1;    // imm
+      mem_to_reg    = 1'b0;  // no access to wb
+      op1_sel       = 1'b1;  // pc
+      op2_sel       = 1'b1;  // imm
+      mem_wren      = 1'b0;
+      mem_rden      = 1'b0;
+      rd_wren       = 1'b0;
+      branch_signal = 1'b1;
+      jmp_signal    = 1'b0;
     end
     STYPE: begin
-      // op1_sel  = 1'b0; // rs1
-      // op2_sel  = 1'b1; // imm
-      // pc_sel   = 1'b0; // pc + 4
-      mem_wren = 1'b1;
+      mem_to_reg    = 1'b0;  // no access to wb
+      op1_sel       = 1'b0;  // rs1
+      op2_sel       = 1'b1;  // imm
+      mem_wren      = 1'b1;
+      mem_rden      = 1'b0;
+      rd_wren       = 1'b0;
+      branch_signal = 1'b0;
+      jmp_signal    = 1'b0;
     end
     IJTYPE: begin
-      // wb_sel  = 2'b10; // rd = pc +4
-      // pc_sel  = 1'b1;  // jmp_pc
-      // op1_sel = 1'b1;  // pc
-      // op2_sel = 1'b1;  // imm
+      mem_to_reg    = 1'b0;  // alu_result
+      op1_sel       = 1'b1;  // pc
+      op2_sel       = 1'b1;  // imm
+      mem_wren      = 1'b0;
+      mem_rden      = 1'b0;
+      rd_wren       = 1'b1;
+      branch_signal = 1'b0;
+      jmp_signal    = 1'b1;
     end
     IITYPE: begin
-      // wb_sel  = 2'b10; // pc = rs1 + imm
-      // pc_sel  = 1'b1;  // jmp_pc
-      // op1_sel = 1'b0;  // rs1
-      // op2_sel = 1'b1;  // imm
+      mem_to_reg    = 1'b0;  // alu_result
+      op1_sel       = 1'b0;  // rs1
+      op2_sel       = 1'b1;  // imm
+      mem_wren      = 1'b0;
+      mem_rden      = 1'b0;
+      rd_wren       = 1'b1;
+      branch_signal = 1'b0;
+      jmp_signal    = 1'b1;
     end
-    U1TYPE,
+    U1TYPE: begin
+      mem_to_reg    = 1'b0;  // alu_result
+      op1_sel       = 1'b0;  // rs1
+      op2_sel       = 1'b1;  // imm
+      mem_wren      = 1'b0;
+      mem_rden      = 1'b0;
+      rd_wren       = 1'b1;
+      branch_signal = 1'b0;
+      jmp_signal    = 1'b0;
+    end
     U2TYPE: begin
-      // wb_sel  = 2'b00; // rd
-      // pc_sel  = 1'b0;  // pc + 4
-      // op1_sel = 1'b0;
-      // op2_sel = 1'b1;  // imm
+      mem_to_reg    = 1'b0;  // alu_result
+      op1_sel       = 1'b0;  // pc
+      op2_sel       = 1'b1;  // imm
+      mem_wren      = 1'b0;
+      mem_rden      = 1'b0;
+      rd_wren       = 1'b1;
+      branch_signal = 1'b0;
+      jmp_signal    = 1'b0;
     end
     default: begin
-      // op1_sel = 1'b0; // rs1_data
-      // op2_sel = 1'b0; // rs2_data
-      // pc_sel  = 1'b0;
-      // wb_sel  = 2'b00;
+      mem_to_reg    = 1'b0;
+      op1_sel       = 1'b0;
+      op2_sel       = 1'b0;
+      mem_wren      = 1'b0;
+      mem_rden      = 1'b0;
+      rd_wren       = 1'b0;
+      branch_signal = 1'b0;
+      jmp_signal    = 1'b0;
     end
   endcase
 end
