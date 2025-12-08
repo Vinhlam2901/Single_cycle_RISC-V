@@ -92,6 +92,7 @@ module pipelined_fwd (
   reg [31:0] alu_wb_debug;
   reg [31:0] memdata_wb_debug;
 
+  reg        if_reg_enb;
   reg        id_reg_enb;
   reg        ex_reg_enb;
   reg        mem_reg_enb;
@@ -105,7 +106,7 @@ module pipelined_fwd (
   always_ff @(posedge i_clk) begin: if_pc_reg
     if (~i_reset) begin
         o_pc_debug <= 32'b0;
-    end else begin
+    end else if (if_reg_enb) begin
         o_pc_debug <= next_pc;
     end
   end
@@ -123,25 +124,30 @@ module pipelined_fwd (
   end
 
   assign inst_if = mem[o_pc_debug[31:2]];
-//==================HAZARD DETECTION UNIT (STALL)================================================================================================
-  always_comb begin : hazard_detection
+//==================STALL_CONTROL===========================================================================================================================
+always_comb begin : stall_detect
     stall_en = 1'b0;
     flush_en = pc_src;
-    // if previous inst lw, but the next inst need the data stored
-    if (id_ex_reg.mem_rden && ((id_ex_reg.rd_addr == if_id_reg.inst[`RS1_ADDR]) || (id_ex_reg.rd_addr == if_id_reg.inst[`RS2_ADDR]))) begin
-       stall_en = 1'b1;
+    if (!flush_en) begin
+      if (id_ex_reg.mem_rden && (id_ex_reg.rd_addr != 0) &&
+        ((id_ex_reg.rd_addr == if_id_reg.inst[`RS1_ADDR]) || 
+        (id_ex_reg.rd_addr == if_id_reg.inst[`RS2_ADDR]))) begin
+          stall_en = 1'b1; // Stall 1 nhịp, đợi Load xong
+        end
     end
   end
-//==================REGISTER_ENB=================================================================================================================================
-  always_comb begin : reg_enb
-    id_reg_enb  = 1'b1;
-    ex_reg_enb  = 1'b1;
-    mem_reg_enb = 1'b1;
-    wb_reg_enb  = 1'b1;
-    if(stall_en) begin
-      id_reg_enb  = 1'b0;
+  //==================REGISTER_ENB=================================================================================================================================
+    always_comb begin : reg_enb
+      if_reg_enb  = 1'b1;
+      id_reg_enb  = 1'b1;
+      ex_reg_enb  = 1'b1;
+      mem_reg_enb = 1'b1;
+      wb_reg_enb  = 1'b1;
+      if(stall_en) begin
+        if_reg_enb  = 1'b0;
+        id_reg_enb  = 1'b0;
+      end
     end
-  end
 //==================FORWARDING_CONTROL===========================================================================================================================
   always_comb begin : forwarding_detect
     rs1_forwarding_sel = 2'b0;
@@ -197,7 +203,7 @@ module pipelined_fwd (
 //==================CONTROL_UNIT=========================================================================================================================
   control_unit  control_unit (
     .instruction  (if_id_reg.inst),
-    .o_inst_vld   (o_insn_vld    ),
+    .o_insn_vld   (o_insn_vld    ),
     .o_ctrl       (o_ctrl        ),
     .br_unsign    (br_unsign     ),
     .op1_sel      (op1_sel       ),
@@ -215,6 +221,7 @@ module pipelined_fwd (
     .inst_i (if_id_reg.inst),
     .imm_o  (imm_ex        )
   );
+
 //==================EX_STAGE========================================================================================================================
   always_comb begin: input_ex_stage_reg
     // data
@@ -241,8 +248,8 @@ module pipelined_fwd (
   end
 
   always_ff @( posedge i_clk ) begin : id_ex_register
-    if(~i_reset || flush_en) begin
-      id_ex_reg <= 32'b0;
+    if(~i_reset || flush_en || stall_en) begin
+      id_ex_reg <= '0;
     end else if (ex_reg_enb) begin
       id_ex_reg <= id_ex_next;
     end
@@ -287,7 +294,7 @@ module pipelined_fwd (
 
     case (rs2_forwarding_sel)
       2'b00:   op2_forward = id_ex_reg.rs2_data;
-      2'b01:   op2_forward = rd_data_o;
+      2'b01:   op2_forward = ex_mem_reg.alu_result;
       2'b10:   op2_forward = wb_data_o; 
       default: op2_forward = 32'b0;
     endcase
@@ -338,7 +345,7 @@ module pipelined_fwd (
 
   always_ff @( posedge i_clk ) begin : ex_mem_register
     if(~i_reset) begin
-      ex_mem_reg <= 32'b0;
+      ex_mem_reg <= '0;
     end else if (mem_reg_enb) begin
       ex_mem_reg <= ex_mem_next;
     end
@@ -375,7 +382,7 @@ module pipelined_fwd (
     .i_lsu_addr (ex_mem_reg.alu_result  ),
     .i_st_data  (wr_data                ),
     .i_lsu_wren (ex_mem_reg.mem_wren    ),
-    .i_lsu_rden (ex_mem_reg.mem_wren    ),
+    .i_lsu_rden (ex_mem_reg.mem_rden    ),
     .i_func3    (ex_mem_reg.inst[`FUNC3]),
     .i_io_sw    (i_io_sw                ),
     .o_io_hex0  (o_io_hex0              ),
@@ -413,7 +420,7 @@ module pipelined_fwd (
 
   always_ff @( posedge i_clk) begin : mem_wb_register
     if(~i_reset) begin
-      mem_wb_reg <= 32'b0;
+      mem_wb_reg <= '0;
     end else if (wb_reg_enb) begin
       mem_wb_reg <= mem_wb_next;
     end
@@ -423,7 +430,6 @@ module pipelined_fwd (
     inst_wb_debug    = mem_wb_reg.inst;
     pc4_wb_debug     = mem_wb_reg.pc4;
     alu_wb_debug     = mem_wb_reg.alu_result;
-    memdata_wb_debug = mem_wb_reg.read_data;
   end
 //==================WRITEBACK=============================================================================================================================
   always_comb begin : write_back
@@ -432,7 +438,7 @@ module pipelined_fwd (
     end else if (mem_wb_reg.inst[`OPCODE] == IITYPE || mem_wb_reg.inst[`OPCODE] == IJTYPE) begin
       wb_data_o = mem_wb_reg.pc4;
     end else if (mem_wb_reg.mem_to_reg) begin
-      wb_data_o = mem_wb_reg.read_data;
+      wb_data_o = read_data;
     end else if (~mem_wb_reg.mem_to_reg) begin
       wb_data_o = mem_wb_reg.alu_result;
     end

@@ -66,7 +66,6 @@ module lsu (
   reg  [6:0]  hex4_next, hex5_next, hex6_next, hex7_next;
 
   reg  [31:0] st_wdata;
-  reg  [31:0] ld_data;
   reg  [15:0] halfword_out;
   reg  [7:0]  byte_out;
 
@@ -169,7 +168,7 @@ module lsu (
   end
 
   assign dmem_ptr  =  i_lsu_addr[15:0];
-  assign is_dmem   =  ~i_lsu_addr[28];                        //0000 -> bit 28 == 0
+  assign is_dmem   =  ~i_lsu_addr[28] &&   i_lsu_addr[14];                        //0000 -> bit 28 == 0
   assign is_out    =  (i_lsu_addr[28] && ~(i_lsu_addr[16])); //1000 -> a[28] & ~a[16]
   assign is_in     =  (i_lsu_addr[28] &&   i_lsu_addr[16] ); //1001 -> a[28] & a[16]
 
@@ -189,13 +188,12 @@ module lsu (
                 .i_bmask_align(bmask_align      ),
                 .i_bmask_misalign(bmask_misalign),
                 .i_wren (mem_wren               ),
-                .i_rden (mem_rden               ),
+                .i_rden (i_lsu_rden             ),
                 .o_rdata(dmem                   )
               );
 
   always_comb begin : st_data
     mem_wren  = 1'b0;
-    ld_data   = 32'b0;
     st_wdata  = i_st_data;
 
     ledr_next = o_io_ledr;
@@ -213,9 +211,9 @@ module lsu (
           4'b0000: mem_wren = 1'b0;
           4'b0001,
           4'b0010,
-          4'b0100: st_wdata = {24'b0, i_st_data[7:0]};
-          4'b1000: st_wdata = i_st_data;
-          4'b0011: st_wdata = {16'b0, i_st_data[15:0]};
+          4'b0100: st_wdata = {24'b0, i_st_data[7:0]        };
+          4'b1000: st_wdata =         i_st_data;
+          4'b0011: st_wdata = {16'b0, i_st_data[15:0]       };
           4'b1100: st_wdata = {       i_st_data[15:0], 16'b0};
           4'b1111: st_wdata =         i_st_data;
           default: begin
@@ -224,7 +222,7 @@ module lsu (
           end
         endcase
       end else begin
-        ld_data = dmem;
+        o_ld_data = dmem;
       end
     end else if (i_lsu_wren && is_ledr) begin
         ledr_next = st_wdata;
@@ -306,43 +304,37 @@ module lsu (
         endcase
       end else if (i_lsu_wren && is_lcd) begin
         lcd_next = st_wdata;
-      end else if (~i_lsu_wren && is_sw && i_lsu_rden) begin
-        ld_data = i_io_sw;
+      end else if (~i_lsu_wren && is_sw) begin
+        o_ld_data = i_io_sw;
       end
     end
+
   always_ff @(posedge i_clk) begin
     if (~i_reset) begin
-        o_io_ledr <= 32'b0;
-        o_io_ledg <= 32'b0;
-        o_io_lcd  <= 32'b0;
-        o_io_hex0 <= 7'b1111111;
-        o_io_hex1 <= 7'b1111111;
-        o_io_hex2 <= 7'b1111111;
-        o_io_hex3 <= 7'b1111111;
-        o_io_hex4 <= 7'b1111111;
-        o_io_hex5 <= 7'b1111111;
-        o_io_hex6 <= 7'b1111111;
-        o_io_hex7 <= 7'b1111111;
+      o_io_ledr <= 32'b0;
+      o_io_ledg <= 32'b0;
+      o_io_lcd  <= 32'b0;
+      o_io_hex0 <= 7'b1111111;
+      o_io_hex1 <= 7'b1111111;
+      o_io_hex2 <= 7'b1111111;
+      o_io_hex3 <= 7'b1111111;
+      o_io_hex4 <= 7'b1111111;
+      o_io_hex5 <= 7'b1111111;
+      o_io_hex6 <= 7'b1111111;
+      o_io_hex7 <= 7'b1111111;
     end else if (i_lsu_wren) begin
-        o_io_ledr <= ledr_next;
-        o_io_ledg <= ledg_next;
-        o_io_lcd  <= lcd_next;
-        o_io_hex0 <= hex0_next;
-        o_io_hex1 <= hex1_next;
-        o_io_hex2 <= hex2_next;
-        o_io_hex3 <= hex3_next;
-        o_io_hex4 <= hex4_next;
-        o_io_hex5 <= hex5_next;
-        o_io_hex6 <= hex6_next;
-        o_io_hex7 <= hex7_next;
+      o_io_ledr <= ledr_next;
+      o_io_ledg <= ledg_next;
+      o_io_lcd  <= lcd_next;
+      o_io_hex0 <= hex0_next;
+      o_io_hex1 <= hex1_next;
+      o_io_hex2 <= hex2_next;
+      o_io_hex3 <= hex3_next;
+      o_io_hex4 <= hex4_next;
+      o_io_hex5 <= hex5_next;
+      o_io_hex6 <= hex6_next;
+      o_io_hex7 <= hex7_next;
     end
-  end
+end
 
-  always_ff @( posedge i_clk ) begin : sync_load
-    if(~i_reset) begin
-      o_ld_data <= 32'b0;
-    end else if (i_lsu_rden) begin
-      o_ld_data <= ld_data;
-    end
-  end
 endmodule

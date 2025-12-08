@@ -1,11 +1,11 @@
-  //===========================================================================================================
-  // Project         : Single Cycle of RISV - V
-  // Module          : Single Cycle R-Type
-  // File            : single_cycle.sv
-  // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
-  // Create date     : 9/9/2025
-  // Updated date    : 6/11/2025 - Finished
-  //=============================================================================================================
+/*===========================================================================================================
+Project         : Single Cycle of RISV - V
+Module          : Single Cycle R-Type
+File            : single_cycle.sv
+Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
+Create date     : 9/9/2025
+Updated date    : 6/11/2025 - Finished
+=============================================================================================================*/
   import package_param::*;
   module pipelined_non_fwd (
     input  wire        i_clk,
@@ -36,6 +36,7 @@
   //==================Declaration=======================================================================================================
 
     reg   [31:0]  inst_if;
+    reg   [31:0]  inst;
     reg   [31:0]  next_pc;
     reg   [31:0]  pc4_wb;
     reg   [31:0]  jmp_pc;
@@ -88,7 +89,7 @@
 
     reg [31:0] pc4_wb_debug;
     reg [31:0] alu_wb_debug;
-    reg [31:0] memdata_wb_debug;
+    reg        mem_to_reg_debug;
 
     reg        if_reg_enb;
     reg        id_reg_enb;
@@ -118,7 +119,7 @@
     initial begin : instruction
       $readmemh("../02_test/isa_4b.hex", mem);
     end
-
+        
     assign inst_if = mem[o_pc_debug[31:2]];
 
   //==================REGISTER_ENB=================================================================================================================================
@@ -142,7 +143,7 @@
 
     always_ff @( posedge i_clk ) begin : if_id_register
       if(~i_reset || flush_en) begin
-        if_id_reg.inst <= 32'b0;
+        if_id_reg.inst <= 32'h00000013;
         if_id_reg.pc   <= 32'b0;
       end else if (id_reg_enb) begin
         if_id_reg.inst <= if_id_next.inst;
@@ -170,7 +171,7 @@
   //==================CONTROL_UNIT=========================================================================================================================
     control_unit  control_unit (
       .instruction  (if_id_reg.inst),
-      .o_inst_vld   (o_insn_vld    ),
+      .o_insn_vld   (o_insn_vld    ),
       .o_ctrl       (o_ctrl        ),
       .br_unsign    (br_unsign     ),
       .op1_sel      (op1_sel       ),
@@ -226,17 +227,36 @@ always_comb begin : stall_detect
       id_ex_next.op1_sel       = op1_sel;
       id_ex_next.op2_sel       = op2_sel;
       id_ex_next.br_unsign     = br_unsign;
-      id_ex_next.mem_wren      = mem_wren;
-      id_ex_next.mem_rden      = mem_rden;
-      id_ex_next.branch_signal = branch_signal;
-      id_ex_next.jmp_signal    = jmp_signal;
+      id_ex_next.mem_wren      = mem_wren & o_insn_vld;
+      id_ex_next.mem_rden      = mem_rden & o_insn_vld;
+      id_ex_next.branch_signal = branch_signal & o_insn_vld;
+      id_ex_next.jmp_signal    = jmp_signal & o_insn_vld;
       id_ex_next.rd_wren       = rd_wren;
       id_ex_next.mem_to_reg    = mem_to_reg;
     end
 
     always_ff @( posedge i_clk ) begin : id_ex_register
       if(~i_reset || flush_en || stall_en) begin
-        id_ex_reg <= '0;
+        id_ex_reg.inst          = 32'h00000013;
+        id_ex_reg.pc            = '0;
+        id_ex_reg.rs1_data      = '0;
+        id_ex_reg.rs2_data      = '0;
+        id_ex_reg.imm_ext       = '0;
+        // addr
+        id_ex_reg.rs1_addr      = '0;
+        id_ex_reg.rs2_addr      = '0;
+        id_ex_reg.rd_addr       = '0;
+        // signal control
+        id_ex_reg.alu_opcode    = '0;
+        id_ex_reg.op1_sel       = '0;
+        id_ex_reg.op2_sel       = '0;
+        id_ex_reg.br_unsign     = '0;
+        id_ex_reg.mem_wren      = '0;
+        id_ex_reg.mem_rden      = '0;
+        id_ex_reg.branch_signal = '0;
+        id_ex_reg.jmp_signal    = '0;
+        id_ex_reg.rd_wren       = '0;
+        id_ex_reg.mem_to_reg    = '0;
       end else if (ex_reg_enb) begin
         id_ex_reg <= id_ex_next;
       end
@@ -316,7 +336,20 @@ always_comb begin : stall_detect
 
     always_ff @( posedge i_clk ) begin : ex_mem_register
       if(~i_reset) begin
-        ex_mem_reg <= '0;
+        // data
+        ex_mem_reg.inst          = 32'h00000013;
+        ex_mem_reg.pc            = '0;
+        ex_mem_reg.rs2_data      = '0;
+        ex_mem_reg.alu_result    = '0;
+        // addr
+        ex_mem_reg.rd_addr       = '0;
+        // signal control
+        ex_mem_reg.mem_wren      = '0;
+        ex_mem_reg.mem_rden      = '0;
+        ex_mem_reg.branch_signal = '0;
+        ex_mem_reg.jmp_signal    = '0;
+        ex_mem_reg.rd_wren       = '0;
+        ex_mem_reg.mem_to_reg    = '0;
       end else if (mem_reg_enb) begin
         ex_mem_reg <= ex_mem_next;
       end
@@ -353,7 +386,7 @@ always_comb begin : stall_detect
       .i_lsu_addr (ex_mem_reg.alu_result  ),
       .i_st_data  (wr_data                ),
       .i_lsu_wren (ex_mem_reg.mem_wren    ),
-      .i_lsu_rden (ex_mem_reg.mem_wren    ),
+      .i_lsu_rden (ex_mem_reg.mem_rden    ),
       .i_func3    (ex_mem_reg.inst[`FUNC3]),
       .i_io_sw    (i_io_sw                ),
       .o_io_hex0  (o_io_hex0              ),
@@ -382,7 +415,6 @@ always_comb begin : stall_detect
       mem_wb_next.pc4           = pc4_wb;
       mem_wb_next.rs2_data      = ex_mem_reg.rs2_data;
       mem_wb_next.alu_result    = ex_mem_reg.alu_result;
-      mem_wb_next.read_data     = read_data;
       // addr
       mem_wb_next.rd_addr       = ex_mem_reg.inst[`RD_ADDR];
       // signal control
@@ -392,7 +424,16 @@ always_comb begin : stall_detect
 
     always_ff @( posedge i_clk) begin : mem_wb_register
       if(~i_reset) begin
-        mem_wb_reg <= '0;
+      // data
+        mem_wb_reg.inst          = 32'h00000013;
+        mem_wb_reg.pc4           = '0;
+        mem_wb_reg.rs2_data      = '0;
+        mem_wb_reg.alu_result    = '0;
+        // addr
+        mem_wb_reg.rd_addr       = '0;
+        // signal control
+        mem_wb_reg.rd_wren       = '0;
+        mem_wb_reg.mem_to_reg    = '0;
       end else if (wb_reg_enb) begin
         mem_wb_reg <= mem_wb_next;
       end
@@ -402,7 +443,7 @@ always_comb begin : stall_detect
       inst_wb_debug    = mem_wb_reg.inst;
       pc4_wb_debug     = mem_wb_reg.pc4;
       alu_wb_debug     = mem_wb_reg.alu_result;
-      memdata_wb_debug = mem_wb_reg.read_data;
+      mem_to_reg_debug = mem_wb_reg.mem_to_reg;
     end
   //==================WRITEBACK=============================================================================================================================
     always_comb begin : write_back
@@ -411,7 +452,7 @@ always_comb begin : stall_detect
       end else if (mem_wb_reg.inst[`OPCODE] == IITYPE || mem_wb_reg.inst[`OPCODE] == IJTYPE) begin
         wb_data_o = mem_wb_reg.pc4;
       end else if (mem_wb_reg.mem_to_reg) begin
-        wb_data_o = mem_wb_reg.read_data;
+        wb_data_o = read_data;
       end else if (~mem_wb_reg.mem_to_reg) begin
         wb_data_o = mem_wb_reg.alu_result;
       end
