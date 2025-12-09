@@ -27,11 +27,34 @@ module control_unit (
   wire is_addi, is_xori, is_ori, is_andi, is_slli, is_srli, is_srai, is_slti, is_sltiu;
   wire is_beq, is_bne, is_blt, is_bge, is_bltu, is_bgeu;
   wire [31:0] pc_addr, rs1_data, rs2_data;
-  wire [9:0 ] rtype;
-  wire [8:0 ] itype;
-  wire [4:0 ] iltype;
-  wire [2:0 ] stype;
-  wire [5:0 ] btype;
+  wire [9:0] rtype;
+  wire [8:0] itype;
+  wire [4:0] iltype;
+  wire [2:0] stype;
+  wire [5:0] btype;
+
+//==========================RTYPE=========================================================================
+  always_comb begin : inst_valid
+    // o_insn_vld = 1'b0;
+    o_ctrl     = 1'b0;
+    case(instruction[`OPCODE])
+      RTYPE,
+      ITYPE,
+      ILTYPE,
+      U1TYPE,
+      U2TYPE,
+      STYPE: o_ctrl = 1'b0;
+      BTYPE,
+      IJTYPE: begin
+        // o_insn_vld = 1'b1;
+        o_ctrl     = 1'b1;
+      end
+      default: begin
+        // o_insn_vld = 1'b0;
+        o_ctrl = 1'b0;
+      end
+    endcase
+  end
 //==========================RTYPE=========================================================================
   //is_add
   assign is_add   = ~instruction[12] & ~instruction[13] & ~instruction[14] & ~instruction[30];
@@ -94,6 +117,7 @@ module control_unit (
 //==========================alu_opcode=========================================================================
   always_comb begin : signal_sel
     br_unsign   = 1'b1;
+    mem_to_reg  = 2'b00;
     case (instruction[`OPCODE])
       RTYPE: case (rtype)
               10'b1000000000 : alu_opcode = 4'b0000;  // add
@@ -163,7 +187,7 @@ module control_unit (
     endcase
 //==================================WRITE_BACK===============================================
   case (instruction[`OPCODE])
-    RTYPE: begin
+    RTYPE: begin                     // opcode rd, r1, r2
       mem_to_reg    = 1'b0;  // alu_result
       op1_sel       = 1'b0;  //rs1
       op2_sel       = 1'b0;  //rs2;
@@ -172,8 +196,6 @@ module control_unit (
       rd_wren       = 1'b1;
       branch_signal = 1'b0;
       jmp_signal    = 1'b0;
-      o_insn_vld    = 1'b1;
-      o_ctrl        = 1'b0;
     end
     ITYPE: begin
       mem_to_reg    = 1'b0;  // alu_result
@@ -184,8 +206,6 @@ module control_unit (
       rd_wren       = 1'b1;
       branch_signal = 1'b0;
       jmp_signal    = 1'b0;
-      o_insn_vld    = 1'b1;
-      o_ctrl        = 1'b0;
     end
     ILTYPE: begin
       mem_to_reg    = 1'b1;  // read_data
@@ -196,8 +216,6 @@ module control_unit (
       rd_wren       = 1'b1;
       branch_signal = 1'b0;
       jmp_signal    = 1'b0;
-      o_insn_vld    = 1'b1;
-      o_ctrl        = 1'b0;
     end
     BTYPE: begin
       mem_to_reg    = 1'b0;  // no access to wb
@@ -208,8 +226,6 @@ module control_unit (
       rd_wren       = 1'b0;
       branch_signal = 1'b1;
       jmp_signal    = 1'b0;
-      o_insn_vld    = 1'b1;
-      o_ctrl        = 1'b1;
     end
     STYPE: begin
       mem_to_reg    = 1'b0;  // no access to wb
@@ -220,8 +236,6 @@ module control_unit (
       rd_wren       = 1'b0;
       branch_signal = 1'b0;
       jmp_signal    = 1'b0;
-      o_insn_vld    = 1'b1;
-      o_ctrl        = 1'b0;
     end
     IJTYPE: begin
       mem_to_reg    = 1'b0;  // alu_result
@@ -232,8 +246,6 @@ module control_unit (
       rd_wren       = 1'b1;
       branch_signal = 1'b0;
       jmp_signal    = 1'b1;
-      o_insn_vld    = 1'b1;
-      o_ctrl        = 1'b1;
     end
     IITYPE: begin
       mem_to_reg    = 1'b0;  // alu_result
@@ -244,8 +256,6 @@ module control_unit (
       rd_wren       = 1'b1;
       branch_signal = 1'b0;
       jmp_signal    = 1'b1;
-      o_insn_vld    = 1'b1;
-      o_ctrl        = 1'b1;
     end
     U1TYPE: begin
       mem_to_reg    = 1'b0;  // alu_result
@@ -256,8 +266,6 @@ module control_unit (
       rd_wren       = 1'b1;
       branch_signal = 1'b0;
       jmp_signal    = 1'b0;
-      o_insn_vld    = 1'b1;
-      o_ctrl        = 1'b0;
     end
     U2TYPE: begin
       mem_to_reg    = 1'b0;  // alu_result
@@ -268,12 +276,8 @@ module control_unit (
       rd_wren       = 1'b1;
       branch_signal = 1'b0;
       jmp_signal    = 1'b0;
-      o_insn_vld    = 1'b1;
-      o_ctrl        = 1'b0;
     end
     default: begin
-      o_insn_vld    = 1'b0;
-      o_ctrl        = 1'b0;
       mem_to_reg    = 1'b0;
       op1_sel       = 1'b0;
       op2_sel       = 1'b0;

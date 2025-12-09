@@ -11,12 +11,12 @@ package package_param;
 
    parameter int WIDTH = 32;
 
-   `define OPCODE    6:0
-   `define RD_ADDR  11:7
-   `define FUNC3    14:12
-   `define RS1_ADDR 19:15
-   `define RS2_ADDR 24:20
-   `define FUNC7    31:25
+   `define OPCODE       6:0
+   `define RD_ADDR      11:7
+   `define FUNC3        14:12
+   `define RS1_ADDR     19:15
+   `define RS2_ADDR     24:20
+   `define FUNC7        31:25
    `define IF_ID_WIDTH  64
    `define ID_EX_WIDTH  250
    `define EX_MEM_WIDTH 128
@@ -28,59 +28,63 @@ package package_param;
   typedef struct packed {
     word_t  pc;
     word_t  inst;
+    logic   o_insn_vld;
   } if_id_reg_t;
 
   typedef struct packed {
-    word_t  pc;
-    word_t  inst;
-    word_t  rs1_data;
-    word_t  rs2_data;
-    word_t  imm_ext;
+    word_t      pc;
+    word_t      inst;
+    word_t      rs1_data;
+    word_t      rs2_data;
+    word_t      imm_ext;
 
-    addr_t  rs1_addr;
-    addr_t  rs2_addr;
-    addr_t  rd_addr;
+    addr_t      rs1_addr;
+    addr_t      rs2_addr;
+    addr_t      rd_addr;
 
-    logic   alu_opcode;
-    logic   br_unsign;
-    logic   op1_sel;
-    logic   op2_sel;    // alu_src
-    logic   mem_wren;
-    logic   mem_rden;
-    logic   branch_signal;
-    logic   jmp_signal;
-    logic   rd_wren;
-    logic   mem_to_reg;
+    logic       o_insn_vld;
+    logic [3:0] alu_opcode;
+    logic       br_unsign;
+    logic       op1_sel;
+    logic       op2_sel;    // alu_src
+    logic       mem_wren;
+    logic       mem_rden;
+    logic       branch_signal;
+    logic       jmp_signal;
+    logic       rd_wren;
+    logic [1:0] mem_to_reg;
   } id_ex_reg_t;
 
   typedef struct packed {
-    word_t  pc;
-    word_t  inst;
-    word_t  alu_result;
-    word_t  rs2_data;
+    word_t      pc;
+    word_t      inst;
+    word_t      alu_result;
+    word_t      rs2_data;
 
-    addr_t  rd_addr;
+    addr_t      rd_addr;
 
-    logic   mem_wren;
-    logic   mem_rden;
-    logic   branch_signal;
-    logic   jmp_signal;
+    logic       o_insn_vld;
+    logic       mem_wren;
+    logic       mem_rden;
+    logic       branch_signal;
+    logic       jmp_signal;
 
-    logic   rd_wren;
-    logic   mem_to_reg;
+    logic       rd_wren;
+    logic [1:0] mem_to_reg;
   } ex_mem_reg_t;
 
   typedef struct packed {
-    word_t  pc4;
-    word_t  alu_result;
-    word_t  rs2_data;
-    word_t  inst;
-    word_t  read_data;
+    word_t      pc4;
+    word_t      alu_result;
+    word_t      rs2_data;
+    word_t      inst;
+    word_t      read_data;
 
-    addr_t  rd_addr;
+    addr_t      rd_addr;
 
-    logic   rd_wren;
-    logic   mem_to_reg;
+    logic       o_insn_vld;
+    logic       rd_wren;
+    logic [1:0] mem_to_reg;
   } mem_wb_reg_t;
 endpackage
 

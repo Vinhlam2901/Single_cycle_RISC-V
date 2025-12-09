@@ -37,6 +37,7 @@ module pipelined_fwd (
 
   reg   [31:0]  inst_if;
   reg   [31:0]  next_pc;
+  reg   [31:0]  pc_if;
   reg   [31:0]  pc4_wb;
   reg   [31:0]  jmp_pc;
   reg   [31:0]  pc_imm;
@@ -99,20 +100,24 @@ module pipelined_fwd (
   reg        wb_reg_enb;
   reg        flush_en;
   reg        stall_en;
-
+  reg        if_valid;
+  reg        if_id_valid;
+  reg        id_ex_valid;
+  reg        ex_mem_valid;
+  reg        mem_wb_valid;
   reg [1:0]  rs1_forwarding_sel;
   reg [1:0]  rs2_forwarding_sel;
 //==================PC=================================================================================================================================
   always_ff @(posedge i_clk) begin: if_pc_reg
     if (~i_reset) begin
-        o_pc_debug <= 32'b0;
+        pc_if <= 32'b0;
     end else if (if_reg_enb) begin
-        o_pc_debug <= next_pc;
+        pc_if <= next_pc;
     end
   end
 
   pc_reg PCplus4 (
-    .pc_reg(o_pc_debug),
+    .pc_reg(pc_if),
     .op(32'd4),
     .pc_o(pc_plus4)
   );
@@ -124,6 +129,8 @@ module pipelined_fwd (
   end
 
   assign inst_if = mem[o_pc_debug[31:2]];
+  assign if_valid = 1'b1;
+
 //==================STALL_CONTROL===========================================================================================================================
 always_comb begin : stall_detect
     stall_en = 1'b0;
@@ -170,16 +177,18 @@ always_comb begin : stall_detect
 //==================PC_ID_REGISTER========================================================================================================================
   always_comb begin: if_id_input
     if_id_next.inst = inst_if;
-    if_id_next.pc   = o_pc_debug;
+    if_id_next.pc   = pc_if;
   end
 
   always_ff @( posedge i_clk ) begin : if_id_register
     if(~i_reset || flush_en) begin
       if_id_reg.inst <= 32'b0;
       if_id_reg.pc   <= 32'b0;
+      if_id_valid    <= 1'b0;
     end else if (id_reg_enb) begin
       if_id_reg.inst <= if_id_next.inst;
       if_id_reg.pc   <= if_id_next.pc;
+      if_id_valid    <= if_valid;
     end
   end
 
@@ -203,7 +212,6 @@ always_comb begin : stall_detect
 //==================CONTROL_UNIT=========================================================================================================================
   control_unit  control_unit (
     .instruction  (if_id_reg.inst),
-    .o_insn_vld   (o_insn_vld    ),
     .o_ctrl       (o_ctrl        ),
     .br_unsign    (br_unsign     ),
     .op1_sel      (op1_sel       ),
@@ -250,8 +258,10 @@ always_comb begin : stall_detect
   always_ff @( posedge i_clk ) begin : id_ex_register
     if(~i_reset || flush_en || stall_en) begin
       id_ex_reg <= '0;
+      id_ex_valid <= 1'b0;
     end else if (ex_reg_enb) begin
       id_ex_reg <= id_ex_next;
+      id_ex_valid <= if_id_valid;
     end
   end
 
@@ -281,7 +291,8 @@ always_comb begin : stall_detect
       3'b111: jmp_check = ~br_less || br_equal && br_unsign; // bgeu
       default:jmp_check = 1'b0;
     endcase
-    pc_src = (jmp_check && id_ex_reg.branch_signal) ^ id_ex_reg.jmp_signal; // branch is condition jmp, jmp is unconditon so invert the condition
+    pc_src = (jmp_check && id_ex_reg.branch_signal) || id_ex_reg.jmp_signal; // branch is condition jmp, jmp is unconditon so invert the condition
+    o_mispred = (id_ex_reg.branch_signal && jmp_check); 
   end
 //==================FORWARDING_MUX===========================================================================================================================
   always_comb begin : forwarding_mux
@@ -346,8 +357,10 @@ always_comb begin : stall_detect
   always_ff @( posedge i_clk ) begin : ex_mem_register
     if(~i_reset) begin
       ex_mem_reg <= '0;
+      ex_mem_valid <= 1'b0;
     end else if (mem_reg_enb) begin
       ex_mem_reg <= ex_mem_next;
+      ex_mem_valid <= id_ex_valid;
     end
   end
 
@@ -421,8 +434,10 @@ always_comb begin : stall_detect
   always_ff @( posedge i_clk) begin : mem_wb_register
     if(~i_reset) begin
       mem_wb_reg <= '0;
+      mem_wb_valid <= 1'b0;
     end else if (wb_reg_enb) begin
       mem_wb_reg <= mem_wb_next;
+      mem_wb_valid <= ex_mem_valid;
     end
   end
 
@@ -443,4 +458,7 @@ always_comb begin : stall_detect
       wb_data_o = mem_wb_reg.alu_result;
     end
   end
+   assign o_insn_vld = mem_wb_valid;
+
+    assign o_pc_debug = (o_insn_vld) ? (mem_wb_reg.pc4 - 4) : 32'b0;
 endmodule
