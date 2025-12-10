@@ -9,7 +9,6 @@
 import package_param::*;
 module control_unit (
   input  wire  [31:0] instruction,
-  output reg          o_insn_vld,
   output reg          o_ctrl,
   output reg          br_unsign,
   output reg          op1_sel,
@@ -35,7 +34,6 @@ module control_unit (
 
 //==========================RTYPE=========================================================================
   always_comb begin : inst_valid
-    // o_insn_vld = 1'b0;
     o_ctrl     = 1'b0;
     case(instruction[`OPCODE])
       RTYPE,
@@ -46,11 +44,9 @@ module control_unit (
       STYPE: o_ctrl = 1'b0;
       BTYPE,
       IJTYPE: begin
-        // o_insn_vld = 1'b1;
         o_ctrl     = 1'b1;
       end
       default: begin
-        // o_insn_vld = 1'b0;
         o_ctrl = 1'b0;
       end
     endcase

@@ -39,8 +39,10 @@ module pipelined_fwd (
   reg   [31:0]  next_pc;
   reg   [31:0]  pc_if;
   reg   [31:0]  pc4_wb;
+  reg   [31:0]  pc_wb;
   reg   [31:0]  jmp_pc;
   reg   [31:0]  pc_imm;
+  reg   [31:0]  mem_forward_data;
   wire  [31:0]  pc_plus4;
   reg           pc_src;
   reg           jmp_check;
@@ -128,19 +130,24 @@ module pipelined_fwd (
     $readmemh("../02_test/isa_4b.hex", mem);
   end
 
-  assign inst_if = mem[o_pc_debug[31:2]];
+  assign inst_if = mem[pc_if[31:2]];
   assign if_valid = 1'b1;
 
-//==================STALL_CONTROL===========================================================================================================================
-always_comb begin : stall_detect
+//==================STALL_CONTROL (UPDATED)=========================================
+  always_comb begin : stall_detect
     stall_en = 1'b0;
-    flush_en = pc_src;
-    if (!flush_en) begin
-      if (id_ex_reg.mem_rden && (id_ex_reg.rd_addr != 0) &&
-        ((id_ex_reg.rd_addr == if_id_reg.inst[`RS1_ADDR]) || 
-        (id_ex_reg.rd_addr == if_id_reg.inst[`RS2_ADDR]))) begin
-          stall_en = 1'b1; // Stall 1 nhịp, đợi Load xong
+    flush_en = pc_src; // Branch Taken -> Flush
+    if(~flush_en) begin
+    // 1. Hazard Writeback: Lệnh ở WB ghi trùng với nguồn của lệnh ở ID
+      if(mem_wb_reg.rd_wren && (mem_wb_reg.inst[`RD_ADDR] != 5'b0) && 
+        ((mem_wb_reg.inst[`RD_ADDR] == if_id_reg.inst[`RS1_ADDR]) || (mem_wb_reg.inst[`RD_ADDR] == if_id_reg.inst[`RS2_ADDR]))) begin
+          stall_en = 1'b1;
         end
+    // 2. Load-Use Hazard: Lệnh ở EX là Load và ghi trùng với nguồn của lệnh ở ID
+      if(id_ex_reg.mem_rden && (id_ex_reg.inst[`RD_ADDR] != 5'b0) && 
+        ((id_ex_reg.inst[`RD_ADDR] == if_id_reg.inst[`RS1_ADDR]) || (id_ex_reg.inst[`RD_ADDR] == if_id_reg.inst[`RS2_ADDR]))) begin
+          stall_en = 1'b1;
+      end
     end
   end
   //==================REGISTER_ENB=================================================================================================================================
@@ -156,20 +163,20 @@ always_comb begin : stall_detect
       end
     end
 //==================FORWARDING_CONTROL===========================================================================================================================
-  always_comb begin : forwarding_detect
-    rs1_forwarding_sel = 2'b0;
-    rs2_forwarding_sel = 2'b0;
-    if(ex_mem_reg.rd_wren && ex_mem_reg.inst[`RD_ADDR] != 5'b0 && (ex_mem_reg.inst[`RD_ADDR] == id_ex_reg.inst[`RS1_ADDR])) begin
-      rs1_forwarding_sel = 2'b01;
-    end else if (ex_mem_reg.rd_wren && ex_mem_reg.inst[`RD_ADDR] != 5'b0 && (ex_mem_reg.inst[`RD_ADDR] == id_ex_reg.inst[`RS2_ADDR])) begin
-      rs2_forwarding_sel = 2'b01;
-    end else if (mem_wb_reg.rd_wren && mem_wb_reg.inst[`RD_ADDR] && (mem_wb_reg.inst[`RD_ADDR] == id_ex_reg.inst[`RS1_ADDR])) begin
+always_comb begin : forwarding_detect
+    rs1_forwarding_sel = 2'b00;
+    rs2_forwarding_sel = 2'b00;
+
+    if (ex_mem_reg.rd_wren && (ex_mem_reg.rd_addr != 5'b0) && (ex_mem_reg.rd_addr == id_ex_reg.rs1_addr)) begin
       rs1_forwarding_sel = 2'b10;
-    end else if (mem_wb_reg.rd_wren && mem_wb_reg.inst[`RD_ADDR] && (mem_wb_reg.inst[`RD_ADDR] == id_ex_reg.inst[`RS2_ADDR])) begin
+    end else if (mem_wb_reg.rd_wren && (mem_wb_reg.rd_addr != 5'b0) && (mem_wb_reg.rd_addr == id_ex_reg.rs1_addr)) begin
+      rs1_forwarding_sel = 2'b01;
+    end
+
+    if (ex_mem_reg.rd_wren && (ex_mem_reg.rd_addr != 5'b0) && (ex_mem_reg.rd_addr == id_ex_reg.rs2_addr)) begin
       rs2_forwarding_sel = 2'b10;
-    end else begin
-      rs1_forwarding_sel = 2'b0;
-      rs2_forwarding_sel = 2'b0;
+    end else if (mem_wb_reg.rd_wren && (mem_wb_reg.rd_addr != 5'b0) && (mem_wb_reg.rd_addr == id_ex_reg.rs2_addr)) begin
+      rs2_forwarding_sel = 2'b01;
     end
   end
 
@@ -191,7 +198,6 @@ always_comb begin : stall_detect
       if_id_valid    <= if_valid;
     end
   end
-
 
   always_comb begin: if_id_debug
     inst_id_debug = if_id_reg.inst;
@@ -272,10 +278,45 @@ always_comb begin : stall_detect
     rs2_ex_debug  = id_ex_reg.rs2_data;
     imm_ex_debug  = id_ex_reg.imm_ext;
   end
+//==================FORWARDING_MUX===========================================================================================================================
+  always_comb begin : forwarding_mux
+    if (ex_mem_reg.inst[`OPCODE] == IITYPE || ex_mem_reg.inst[`OPCODE] == IJTYPE) begin
+      mem_forward_data = pc4_wb;
+    end else begin
+      mem_forward_data = ex_mem_reg.alu_result;
+    end
+
+    case (rs1_forwarding_sel)
+      2'b00:   op1_forward = id_ex_reg.rs1_data;
+      2'b01:   op1_forward = wb_data_o; 
+      2'b10:   op1_forward = mem_forward_data;
+      default: op1_forward = 32'b0;
+    endcase
+
+    case (rs2_forwarding_sel)
+      2'b00:   op2_forward = id_ex_reg.rs2_data;
+      2'b01:   op2_forward = wb_data_o; 
+      2'b10:   op2_forward = mem_forward_data;
+      default: op2_forward = 32'b0;
+    endcase
+  end
+//==================OPERATION_1_MUX===========================================================================================================================
+  assign op1 = (id_ex_reg.op1_sel) ? id_ex_reg.pc : op1_forward;
+//==================OPERATION_2_MUX===========================================================================================================================
+  assign op2 = (id_ex_reg.op2_sel) ? id_ex_reg.imm_ext : op2_forward;
+//==================ALU=====================================================================================================================================
+  alu alu (
+    .i_op_a      (op1                 ),
+    .i_op_b      (op2                 ),
+    .br_unsign_i (id_ex_reg.br_unsign ),
+    .i_alu_op    (id_ex_reg.alu_opcode),
+    .o_alu_data  (rd_data_o           )
+  );
+
 //==================BRCOMP=============================================================================================================================
   brcomp branch_compare (
-    .i_rs1_data (id_ex_reg.rs1_data ),
-    .i_rs2_data (id_ex_reg.rs2_data ),
+    .i_rs1_data (op1_forward        ),
+    .i_rs2_data (op2_forward        ),
     .i_br_un    (id_ex_reg.br_unsign),
     .o_br_less  (br_less            ),
     .o_br_equal (br_equal           )
@@ -288,40 +329,12 @@ always_comb begin : stall_detect
       3'b100: jmp_check =  br_less;                          // blt
       3'b101: jmp_check = ~br_less || br_equal;              // bge > or =
       3'b110: jmp_check =  br_less && br_unsign;             // bltu
-      3'b111: jmp_check = ~br_less || br_equal && br_unsign; // bgeu
+      3'b111: jmp_check = (~br_less || br_equal) && br_unsign; // bgeu
       default:jmp_check = 1'b0;
     endcase
-    pc_src = (jmp_check && id_ex_reg.branch_signal) || id_ex_reg.jmp_signal; // branch is condition jmp, jmp is unconditon so invert the condition
+    pc_src    = (jmp_check && id_ex_reg.branch_signal) || id_ex_reg.jmp_signal; // branch is condition jmp, jmp is unconditon so invert the condition
     o_mispred = (id_ex_reg.branch_signal && jmp_check); 
   end
-//==================FORWARDING_MUX===========================================================================================================================
-  always_comb begin : forwarding_mux
-    case (rs1_forwarding_sel)
-      2'b00:   op1_forward = id_ex_reg.rs1_data;
-      2'b01:   op1_forward = ex_mem_reg.alu_result;
-      2'b10:   op1_forward = wb_data_o; 
-      default: op1_forward = 32'b0;
-    endcase
-
-    case (rs2_forwarding_sel)
-      2'b00:   op2_forward = id_ex_reg.rs2_data;
-      2'b01:   op2_forward = ex_mem_reg.alu_result;
-      2'b10:   op2_forward = wb_data_o; 
-      default: op2_forward = 32'b0;
-    endcase
-  end
-//==================OPERATION_1_MUX===========================================================================================================================
-  assign op1 = (id_ex_reg.op1_sel) ? id_ex_reg.pc : op1_forward;
-//==================OPERATION_2_MUX===========================================================================================================================
-  assign op2 = (id_ex_reg.op2_sel) ? id_ex_reg.imm_ext : op2_forward;
-//==================ALU=====================================================================================================================================
-  alu alu (
-  .i_op_a      (op1                 ),
-  .i_op_b      (op2                 ),
-  .br_unsign_i (id_ex_reg.br_unsign ),
-  .i_alu_op    (id_ex_reg.alu_opcode),
-  .o_alu_data  (rd_data_o           )
-  );
 //==================PC_ADDER=====================================================================================================================================
   pc_reg pc_adder_imm (
     .pc_reg(id_ex_reg.pc),
@@ -341,7 +354,7 @@ always_comb begin : stall_detect
     // data
     ex_mem_next.inst          = id_ex_reg.inst;
     ex_mem_next.pc            = id_ex_reg.pc;
-    ex_mem_next.rs2_data      = id_ex_reg.rs2_data;
+    ex_mem_next.rs2_data      = op2_forward;
     ex_mem_next.alu_result    = rd_data_o;
     // addr
     ex_mem_next.rd_addr       = id_ex_reg.inst[`RD_ADDR];
@@ -356,10 +369,10 @@ always_comb begin : stall_detect
 
   always_ff @( posedge i_clk ) begin : ex_mem_register
     if(~i_reset) begin
-      ex_mem_reg <= '0;
+      ex_mem_reg   <= '0;
       ex_mem_valid <= 1'b0;
     end else if (mem_reg_enb) begin
-      ex_mem_reg <= ex_mem_next;
+      ex_mem_reg   <= ex_mem_next;
       ex_mem_valid <= id_ex_valid;
     end
   end
@@ -367,7 +380,7 @@ always_comb begin : stall_detect
   always_comb begin: ex_mem_debug
     inst_mem_debug = ex_mem_reg.inst;
     pc_mem_debug   = ex_mem_reg.pc;
-    rs2_mem_debug  = ex_mem_reg.rs2_data;
+    rs2_mem_debug  = op2_forward;
     alu_mem_debug  = ex_mem_reg.alu_result;
   end
 //==================LSU=====================================================================================================================================
@@ -433,10 +446,10 @@ always_comb begin : stall_detect
 
   always_ff @( posedge i_clk) begin : mem_wb_register
     if(~i_reset) begin
-      mem_wb_reg <= '0;
+      mem_wb_reg   <= '0;
       mem_wb_valid <= 1'b0;
     end else if (wb_reg_enb) begin
-      mem_wb_reg <= mem_wb_next;
+      mem_wb_reg   <= mem_wb_next;
       mem_wb_valid <= ex_mem_valid;
     end
   end
@@ -458,7 +471,13 @@ always_comb begin : stall_detect
       wb_data_o = mem_wb_reg.alu_result;
     end
   end
-   assign o_insn_vld = mem_wb_valid;
 
-    assign o_pc_debug = (o_insn_vld) ? (mem_wb_reg.pc4 - 4) : 32'b0;
+  pc_minus PC_wb_minus4 (
+    .pc_reg(mem_wb_reg.pc4),
+    .op    (32'd4),
+    .pc_o  (pc_wb)
+  );
+
+  assign o_insn_vld = mem_wb_valid;
+  assign o_pc_debug = (o_insn_vld) ? pc_wb : 32'b0;
 endmodule
