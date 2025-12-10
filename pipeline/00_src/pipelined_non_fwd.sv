@@ -63,6 +63,7 @@
   wire  [31:0]  imm_ex;
   wire  [31:0]  rs1_data;
   reg   [31:0]  op1;
+  reg   [31:0]  rs1;
   reg   [31:0]  wb_data_o;
   reg   [31:0]  rd_data_o;
   reg   [31:0]  wr_data;
@@ -278,8 +279,15 @@ end
     pc_src = (jmp_check && id_ex_reg.branch_signal) || id_ex_reg.jmp_signal; // branch is condition jmp, jmp is unconditon so invert the condition
     o_mispred = (id_ex_reg.branch_signal && jmp_check); 
   end
+  always_comb begin
+    if(id_ex_reg.inst[`OPCODE] == U1TYPE) begin
+      rs1 = 32'b0;
+    end else begin
+      rs1 = id_ex_reg.rs1_data;
+    end  
+  end
 //==================OPERATION_1_MUX===========================================================================================================================
-  assign op1 = (id_ex_reg.op1_sel) ? id_ex_reg.pc : id_ex_reg.rs1_data;
+  assign op1 = (id_ex_reg.op1_sel) ? id_ex_reg.pc : rs1;
 //==================OPERATION_2_MUX===========================================================================================================================
   assign op2 = (id_ex_reg.op2_sel) ? id_ex_reg.imm_ext : id_ex_reg.rs2_data;
 //==================ALU=====================================================================================================================================

@@ -1,10 +1,10 @@
 //===========================================================================================================
-// Project         : Single Cycle of RISV - V
-// Module          : Single Cycle R-Type
-// File            : single_cycle.sv
+// Project         : PIPELINED Model Forwarding of RISV - V
+// Module          : PIPELINED Model Forwarding
+// File            : pipelined_fwd.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
-// Create date     : 9/9/2025
-// Updated date    : 6/11/2025 - Finished
+// Create date     : 10/11/2025
+// Updated date    : 10/12/2025
 //=============================================================================================================
 import package_param::*;
 module pipelined_fwd (
@@ -63,6 +63,7 @@ module pipelined_fwd (
   wire  [31:0]  imm_ex;
   wire  [31:0]  rs1_data;
   reg   [31:0]  op1;
+  reg   [31:0]  rs1;
   reg   [31:0]  op1_forward;
   reg   [31:0]  op2_forward;
   reg   [31:0]  wb_data_o;
@@ -285,9 +286,14 @@ always_comb begin : forwarding_detect
     end else begin
       mem_forward_data = ex_mem_reg.alu_result;
     end
+    if(id_ex_reg.inst[`OPCODE] == U1TYPE) begin
+      rs1 = 32'b0;
+    end else begin
+      rs1 = id_ex_reg.rs1_data;
+    end
 
     case (rs1_forwarding_sel)
-      2'b00:   op1_forward = id_ex_reg.rs1_data;
+      2'b00:   op1_forward = rs1;
       2'b01:   op1_forward = wb_data_o; 
       2'b10:   op1_forward = mem_forward_data;
       default: op1_forward = 32'b0;

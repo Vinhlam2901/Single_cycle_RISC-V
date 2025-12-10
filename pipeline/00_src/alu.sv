@@ -18,71 +18,71 @@ module alu (
   wire        cout_add, cout_sub, rd_equals, rd_equalu;
 
   and_32bit     and_module      (
-                                .rs1_i(i_op_a),
-                                .rs2_i(i_op_b),
-                                .rd_o(rd_and)
+                                  .rs1_i(i_op_a),
+                                  .rs2_i(i_op_b),
+                                  .rd_o(rd_and)
                                 ); //AND
 
   or_32bit      or_module       (
-                                .rs1_i(i_op_a),
-                                .rs2_i(i_op_b),
-                                .rd_o(rd_or)
+                                  .rs1_i(i_op_a),
+                                  .rs2_i(i_op_b),
+                                  .rd_o(rd_or)
                                 ); //OR
 
   xor_32bit     xor_module      (
-                                .rs1_i(i_op_a),
-                                .rs2_i(i_op_b),
-                                .rd_o(rd_xor)
+                                  .rs1_i(i_op_a),
+                                  .rs2_i(i_op_b),
+                                  .rd_o(rd_xor)
                                 ); // XOR
 
   add_subtract  subtract_module (
-                                .a_i      (i_op_a),
-                                .b_i      (i_op_b),
-                                .cin_i    (1'b1),
-                                .result_o (rd_sub),
-                                .cout_o   (cout_sub)
+                                  .a_i      (i_op_a),
+                                  .b_i      (i_op_b),
+                                  .cin_i    (1'b1),
+                                  .result_o (rd_sub),
+                                  .cout_o   (cout_sub)
                                 ); //SUB
 
   add_subtract add_module       (
-                                .a_i      (i_op_a),
-                                .b_i      (i_op_b),
-                                .cin_i    (1'b0),
-                                .result_o (rd_add),
-                                .cout_o   (cout_add)
+                                  .a_i      (i_op_a),
+                                  .b_i      (i_op_b),
+                                  .cin_i    (1'b0),
+                                  .result_o (rd_add),
+                                  .cout_o   (cout_add)
                                 ); //ADD
 
   brcomp        slt_module      (
-                                .i_rs1_data(i_op_a),
-                                .i_rs2_data(i_op_b),
-                                .i_br_un   (1'b0),
-                                .o_br_less (slt),
-                                .o_br_equal(rd_equals)
+                                  .i_rs1_data(i_op_a),
+                                  .i_rs2_data(i_op_b),
+                                  .i_br_un   (1'b0),
+                                  .o_br_less (slt),
+                                  .o_br_equal(rd_equals)
                                 ); //SLT
 
   brcomp        sltu_module     (
-                                .i_rs1_data  (i_op_a),
-                                .i_rs2_data  (i_op_b),
-                                .i_br_un     (1'b1),
-                                .o_br_less   (sltu),
-                                .o_br_equal  (rd_equalu)
+                                  .i_rs1_data  (i_op_a),
+                                  .i_rs2_data  (i_op_b),
+                                  .i_br_un     (1'b1),
+                                  .o_br_less   (sltu),
+                                  .o_br_equal  (rd_equalu)
                                 ); //SLTU
 
   srl           srl_module      (
-                                .rs1_data (i_op_a),
-                                .rs2_data (i_op_b),
-                                .rd_data  (rd_srl)
+                                  .rs1_data (i_op_a),
+                                  .rs2_data (i_op_b),
+                                  .rd_data  (rd_srl)
                                 ); //SRL
 
   sll           sll_module      (
-                                .rs1_data (i_op_a),
-                                .rs2_data (i_op_b),
-                                .rd_data  (rd_sll)
+                                  .rs1_data (i_op_a),
+                                  .rs2_data (i_op_b),
+                                  .rd_data  (rd_sll)
                                 ); //SLL
 
   sra           sra_module      (
-                                .rs1_data   (i_op_a),
-                                .rs2_data   (i_op_b),
-                                .rd_data    (rd_sra)
+                                  .rs1_data   (i_op_a),
+                                  .rs2_data   (i_op_b),
+                                  .rd_data    (rd_sra)
                                 ); //SRA
   assign rd_slt  = {31'b0, slt};
   assign rd_sltu = {31'b0, sltu};

@@ -22,18 +22,15 @@ module control_unit (
   output reg          mem_wren
 );
 //===================================DECLARATION==================================================
-  wire is_add, is_sub, is_and, is_or, is_xor, is_slt, is_sltu, is_sra, is_srl, is_sll, is_mul;
+  wire is_add, is_sub, is_and, is_or, is_xor, is_slt, is_sltu, is_sra, is_srl, is_sll;
   wire is_addi, is_xori, is_ori, is_andi, is_slli, is_srli, is_srai, is_slti, is_sltiu;
   wire is_beq, is_bne, is_blt, is_bge, is_bltu, is_bgeu;
-  wire [31:0] pc_addr, rs1_data, rs2_data;
   wire [9:0] rtype;
   wire [8:0] itype;
-  wire [4:0] iltype;
-  wire [2:0] stype;
   wire [5:0] btype;
 
 //==========================RTYPE=========================================================================
-  always_comb begin : inst_valid
+always_comb begin : inst_valid
     o_ctrl     = 1'b0;
     case(instruction[`OPCODE])
       RTYPE,
@@ -43,9 +40,10 @@ module control_unit (
       U2TYPE,
       STYPE: o_ctrl = 1'b0;
       BTYPE,
-      IJTYPE: begin
+      IJTYPE,
+      IITYPE: begin 
         o_ctrl     = 1'b1;
-      end
+      end      
       default: begin
         o_ctrl = 1'b0;
       end
@@ -113,7 +111,7 @@ module control_unit (
 //==========================alu_opcode=========================================================================
   always_comb begin : signal_sel
     br_unsign   = 1'b1;
-    mem_to_reg  = 2'b00;
+    mem_to_reg  = 1'b0;
     case (instruction[`OPCODE])
       RTYPE: case (rtype)
               10'b1000000000 : alu_opcode = 4'b0000;  // add
@@ -130,8 +128,8 @@ module control_unit (
             endcase
       ITYPE: case (itype)
               9'b100000000   : begin
-                alu_opcode = 4'b0000;   // addi
-                br_unsign  = 1'b0;
+                               alu_opcode = 4'b0000;   // addi
+                               br_unsign  = 1'b0;
               end
               9'b010000000   : alu_opcode = 4'b0010;  // slli
               9'b001000000   : alu_opcode = 4'b0011;  // slti
@@ -139,47 +137,47 @@ module control_unit (
               9'b000010000   : alu_opcode = 4'b0101;  // xori
               9'b000001000   : alu_opcode = 4'b0110;  // srli
               9'b000000100   : begin
-                alu_opcode = 4'b0111;                 // is_srai
-                br_unsign  = 1'b0;
+                               alu_opcode = 4'b0111;                 // is_srai
+                               br_unsign  = 1'b0;
               end
               9'b000000010   : alu_opcode = 4'b1000;   // ori
               9'b000000001   : alu_opcode = 4'b1001;   // andi
               default        : alu_opcode = 4'b0000;
             endcase
       ILTYPE,
-      STYPE:              alu_opcode = 4'b0000;    // alu using add
+      STYPE:                   alu_opcode = 4'b0000;    // alu using add
       BTYPE: case (btype)
               6'b100000  : begin                       // beq
-                alu_opcode = 4'b0000;
-                br_unsign = 1'b0;
+                               alu_opcode = 4'b0000;
+                               br_unsign = 1'b0;
                 end
               6'b010000 : begin                        // bne
-                alu_opcode = 4'b0000;
-                br_unsign = 1'b0;
+                               alu_opcode = 4'b0000;
+                               br_unsign = 1'b0;
                 end
               6'b001000 : begin                        // blt
-                alu_opcode = 4'b0000;
-                br_unsign = 1'b0;
+                               alu_opcode = 4'b0000;
+                               br_unsign = 1'b0;
                 end
               6'b000100: begin                         // bge
-                alu_opcode = 4'b0000;
-                br_unsign = 1'b0;
+                               alu_opcode = 4'b0000;
+                               br_unsign = 1'b0;
                 end
               6'b000010: begin
-                alu_opcode = 4'b0000;         // bltu
-                br_unsign  = 1'b1;
+                               alu_opcode = 4'b0000;         // bltu
+                               br_unsign  = 1'b1;
                 end
               6'b000001: begin
-                alu_opcode = 4'b0000;
-                br_unsign  = 1'b1;
+                               alu_opcode = 4'b0000;
+                               br_unsign  = 1'b1;
                 end
-              default  : alu_opcode = 4'b0000;
+              default  :       alu_opcode = 4'b0000;
             endcase
-      IJTYPE:            alu_opcode = 4'b0000;
-      IITYPE:            alu_opcode = 4'b0000;
-      U1TYPE:            alu_opcode = 4'b0000;         // lui using imm + 0
-      U2TYPE:            alu_opcode = 4'b0000;         // auipc using pc + imm
-      default:           alu_opcode = 4'b0000;
+      IJTYPE:                  alu_opcode = 4'b0000;
+      IITYPE:                  alu_opcode = 4'b0000;
+      U1TYPE:                  alu_opcode = 4'b0000;         // lui using imm + 0
+      U2TYPE:                  alu_opcode = 4'b0000;         // auipc using pc + imm
+      default:                 alu_opcode = 4'b0000;
     endcase
 //==================================WRITE_BACK===============================================
   case (instruction[`OPCODE])
@@ -265,7 +263,7 @@ module control_unit (
     end
     U2TYPE: begin
       mem_to_reg    = 1'b0;  // alu_result
-      op1_sel       = 1'b0;  // pc
+      op1_sel       = 1'b1;  // pc
       op2_sel       = 1'b1;  // imm
       mem_wren      = 1'b0;
       mem_rden      = 1'b0;
