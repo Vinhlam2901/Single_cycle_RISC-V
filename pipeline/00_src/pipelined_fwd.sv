@@ -4,7 +4,7 @@
 // File            : pipelined_fwd.sv
 // Author          : Chau Tran Vinh Lam - vinhlamchautran572@gmail.com
 // Create date     : 10/11/2025
-// Updated date    : 10/12/2025
+// Updated date    : 11/12/2025 - Finished
 //=============================================================================================================
 import package_param::*;
 module pipelined_fwd (
@@ -27,14 +27,12 @@ module pipelined_fwd (
   output reg  [6:0]  o_io_hex6,
   output reg  [6:0]  o_io_hex7,
 
-
   output reg         o_ctrl,    // neu la lenh branch or jmp thi = 1
   output reg         o_mispred,
   output reg  [31:0] o_pc_debug,
   output reg         o_insn_vld
 );
 //==================Declaration=======================================================================================================
-
   reg   [31:0]  inst_if;
   reg   [31:0]  next_pc;
   reg   [31:0]  pc_if;
@@ -44,13 +42,13 @@ module pipelined_fwd (
   reg   [31:0]  pc_imm;
   reg   [31:0]  mem_forward_data;
   wire  [31:0]  pc_plus4;
+  wire  [3:0]   alu_op;
   reg           pc_src;
   reg           jmp_check;
   reg           op1_sel;
   wire          op2_sel;
   wire          branch_signal;
   wire          jmp_signal;
-  wire  [3:0]   alu_op;
   wire          rd_wren;
   wire          mem_wren;
   wire          mem_rden;
@@ -72,7 +70,7 @@ module pipelined_fwd (
   reg   [31:0]  read_data;
   reg   [31:0]  mem           [0:8095];   //8kB
 //=================PIPELINE_REGISTER========================================================================================================================
-  if_id_reg_t  if_id_reg, if_id_next;
+  if_id_reg_t  if_id_reg, if_id_next;     // next: incoming data; reg: present data
   id_ex_reg_t  id_ex_reg, id_ex_next;
   ex_mem_reg_t ex_mem_reg, ex_mem_next;
   mem_wb_reg_t mem_wb_reg, mem_wb_next;
@@ -134,10 +132,10 @@ module pipelined_fwd (
   assign inst_if = mem[pc_if[31:2]];
   assign if_valid = 1'b1;
 
-//==================STALL_CONTROL (UPDATED)=========================================
+//==================STALL_CONTROL===============================================================================================================================================================================================================
   always_comb begin : stall_detect
     stall_en = 1'b0;
-    flush_en = pc_src; // Branch Taken -> Flush
+    flush_en = pc_src;
     if(~flush_en) begin
     // 1. Hazard Writeback: Lệnh ở WB ghi trùng với nguồn của lệnh ở ID
       if(mem_wb_reg.rd_wren && (mem_wb_reg.inst[`RD_ADDR] != 5'b0) && 

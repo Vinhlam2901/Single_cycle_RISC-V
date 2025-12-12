@@ -168,7 +168,7 @@ module lsu (
   end
 
   assign dmem_ptr  =  i_lsu_addr[15:0];
-  assign is_dmem   =  ~i_lsu_addr[28] &&   i_lsu_addr[14];                           //0000 -> bit 28 == 0
+  assign is_dmem   =  ~i_lsu_addr[28];                           //0000 -> bit 28 == 0
   assign is_out    =  (i_lsu_addr[28] && ~(i_lsu_addr[16])); //1000 -> a[28] & ~a[16]
   assign is_in     =  (i_lsu_addr[28] &&   i_lsu_addr[16] ); //1001 -> a[28] & a[16]
 

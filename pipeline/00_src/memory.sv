@@ -32,7 +32,7 @@ module memory (
   reg         is_uhb;
   reg         is_word;
 
-  assign mem_addr = {20'b0 , i_addr[13:2]};
+  assign mem_addr = {18'b0 , i_addr[15:2]};
 
   full_adder_32bit fa (
     .A_i(mem_addr        ),
