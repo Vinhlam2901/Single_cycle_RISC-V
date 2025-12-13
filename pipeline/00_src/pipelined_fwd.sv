@@ -137,12 +137,11 @@ module pipelined_fwd (
     stall_en = 1'b0;
     flush_en = pc_src;
     if(~flush_en) begin
-    // 1. Hazard Writeback: Lệnh ở WB ghi trùng với nguồn của lệnh ở ID
+
       if(mem_wb_reg.rd_wren && (mem_wb_reg.inst[`RD_ADDR] != 5'b0) && 
         ((mem_wb_reg.inst[`RD_ADDR] == if_id_reg.inst[`RS1_ADDR]) || (mem_wb_reg.inst[`RD_ADDR] == if_id_reg.inst[`RS2_ADDR]))) begin
           stall_en = 1'b1;
         end
-    // 2. Load-Use Hazard: Lệnh ở EX là Load và ghi trùng với nguồn của lệnh ở ID
       if(id_ex_reg.mem_rden && (id_ex_reg.inst[`RD_ADDR] != 5'b0) && 
         ((id_ex_reg.inst[`RD_ADDR] == if_id_reg.inst[`RS1_ADDR]) || (id_ex_reg.inst[`RD_ADDR] == if_id_reg.inst[`RS2_ADDR]))) begin
           stall_en = 1'b1;
